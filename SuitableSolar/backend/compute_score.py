@@ -11,7 +11,7 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
     # --- Step 1: Determine min/max for normalization ---
     min_ghi = df["Annual_GHI"].min()
     max_ghi = df["Annual_GHI"].max()
-    max_distance = df["Grid_Distance_km"].max()
+    max_distance = df["grid_distance_km"].max()
 
     scores = []
 
@@ -36,7 +36,7 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
         lat_factor = 1 - (abs(row["Latitude"]) / 90) * 0.3
 
         # 4️⃣ Grid Distance Factor (closer is better)
-        distance_factor = 1 - (row["Grid_Distance_km"] / max_distance) if max_distance != 0 else 1
+        distance_factor = 1 - (row["grid_distance_km"] / max_distance) if max_distance != 0 else 1
 
         # Combine (weighted)
         score = ((normalized_irr * 0.5) +      # 50%
@@ -53,7 +53,7 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
 
 if __name__ == "__main__":
     # Load existing CSV
-    df = pd.read_csv("backend/data/solar_results.csv")
+    df = pd.read_csv("backend/data/solar_with_grid.csv")
 
     # Compute solar suitability
     df = compute_solar_suitability(df)
