@@ -37,6 +37,7 @@ ALLOWED_SORT = {"id","solar_score","annual_ghi","grid_distance","slope","area","
 
 @app.get("/locations")
 def list_locations():
+    import math
     # filters & paging
     q = request.args.get("q")
     min_score = request.args.get("min_score", type=float)
