@@ -51,6 +51,6 @@ def multi_year_forecast(initial_features_df, start_year, years_ahead, models, fe
                 next_row.append(0)
 
         history = pd.DataFrame([next_row], columns=feature_cols)
-        history['TotalEnergy'] = history['TotalEnergy'].iloc[0]  # ensure TotalEnergy stays
+        history['TotalEnergy'] = history['TotalEnergy'].iloc[0]
 
     return pd.DataFrame(forecast_results)
