@@ -1,5 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import 'leaflet.heat'
 import './App.css'
+
 
 interface Property {
   id: number
@@ -103,14 +108,65 @@ const mockProperties: Property[] = [
   }
 ]
 
+type ViewMode = 'list' | 'map'
+
+// Heat layer component
+function HeatmapLayer({ properties }: { properties: Property[] }) {
+  const map = useMap()
+
+  useEffect(() => {
+    // Create heat points: [lat, lng, intensity]
+    const heatPoints = properties.map(property => [
+      property.coordinates.lat,
+      property.coordinates.lng,
+      property.suitabilityScore / 100 // Normalize to 0-1
+    ]) as [number, number, number][]
+
+    // @ts-ignore - leaflet.heat extends L
+    const heatLayer = L.heatLayer(heatPoints, {
+      radius: 50,
+      blur: 35,
+      maxZoom: 10,
+      max: 1.0,
+      gradient: {
+        0.0: '#ff5459',
+        0.5: '#e68161',
+        0.65: '#a84b2f',
+        0.75: '#5dc9d4',
+        0.85: '#32b8c6',
+        0.9: '#218085',
+        1.0: '#1a6873'
+      }
+    }).addTo(map)
+
+    return () => {
+      map.removeLayer(heatLayer)
+    }
+  }, [map, properties])
+
+  return null
+}
+
 function App() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [sortBy, setSortBy] = useState<'score' | 'price' | 'acres'>('score')
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [hoveredProperty, setHoveredProperty] = useState<number | null>(null)
 
   const getSuitabilityColor = (score: number) => {
     if (score >= 90) return 'var(--color-success)'
     if (score >= 75) return 'var(--color-warning)'
     return 'var(--color-error)'
+  }
+
+  const getMarkerColor = (score: number) => {
+    if (score >= 95) return '#1a6873'
+    if (score >= 90) return '#218085'
+    if (score >= 85) return '#32b8c6'
+    if (score >= 80) return '#5dc9d4'
+    if (score >= 75) return '#a84b2f'
+    if (score >= 70) return '#e68161'
+    return '#ff5459'
   }
 
   const getSuitabilityLabel = (score: number) => {
@@ -143,7 +199,7 @@ function App() {
               <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
             </svg>
             <div>
-              <h1>SolarLand</h1>
+              <h1>SolScope</h1>
               <p className="tagline">Find Perfect Land for Solar Energy</p>
             </div>
           </div>
@@ -161,257 +217,411 @@ function App() {
       </header>
 
       <main className="main-content">
-        <div className="controls">
-          <div className="search-bar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.35-4.35"/>
+        <div className="view-tabs">
+          <button 
+            className={`tab-button ${viewMode === 'list' ? 'active' : ''}`}
+            onClick={() => setViewMode('list')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="8" y1="6" x2="21" y2="6"/>
+              <line x1="8" y1="12" x2="21" y2="12"/>
+              <line x1="8" y1="18" x2="21" y2="18"/>
+              <line x1="3" y1="6" x2="3.01" y2="6"/>
+              <line x1="3" y1="12" x2="3.01" y2="12"/>
+              <line x1="3" y1="18" x2="3.01" y2="18"/>
             </svg>
-            <input 
-              type="text" 
-              placeholder="Search by location or property name..."
-              className="form-control"
-            />
-          </div>
-          <div className="sort-controls">
-            <label className="form-label">Sort by:</label>
-            <select 
-              className="form-control" 
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-            >
-              <option value="score">Suitability Score</option>
-              <option value="acres">Land Size</option>
-              <option value="price">Price</option>
-            </select>
-          </div>
+            List View
+          </button>
+          <button 
+            className={`tab-button ${viewMode === 'map' ? 'active' : ''}`}
+            onClick={() => setViewMode('map')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+              <line x1="8" y1="2" x2="8" y2="18"/>
+              <line x1="16" y1="6" x2="16" y2="22"/>
+            </svg>
+            Map View
+          </button>
         </div>
 
-        <div className="content-grid">
-          <div className="properties-list">
-            <h2 className="section-title">Available Properties</h2>
-            <div className="property-cards">
-              {sortedProperties.map((property) => (
-                <div 
-                  key={property.id}
-                  className={`property-card ${selectedProperty?.id === property.id ? 'selected' : ''}`}
-                  onClick={() => setSelectedProperty(property)}
+        {viewMode === 'list' ? (
+          <>
+            <div className="controls">
+              <div className="search-bar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input 
+                  type="text" 
+                  placeholder="Search by location or property name..."
+                  className="form-control"
+                />
+              </div>
+              <div className="sort-controls">
+                <label className="form-label">Sort by:</label>
+                <select 
+                  className="form-control" 
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
                 >
-                  <div className="property-header">
-                    <div>
-                      <h3>{property.name}</h3>
-                      <p className="location">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                          <circle cx="12" cy="10" r="3"/>
-                        </svg>
-                        {property.location}
-                      </p>
-                    </div>
+                  <option value="score">Suitability Score</option>
+                  <option value="acres">Land Size</option>
+                  <option value="price">Price</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="content-grid">
+              <div className="properties-list">
+                <h2 className="section-title">Available Properties</h2>
+                <div className="property-cards">
+                  {sortedProperties.map((property) => (
                     <div 
-                      className="score-badge"
-                      style={{ 
-                        backgroundColor: `${getSuitabilityColor(property.suitabilityScore)}20`,
-                        borderColor: getSuitabilityColor(property.suitabilityScore),
-                        color: getSuitabilityColor(property.suitabilityScore)
-                      }}
+                      key={property.id}
+                      className={`property-card ${selectedProperty?.id === property.id ? 'selected' : ''}`}
+                      onClick={() => setSelectedProperty(property)}
                     >
-                      <span className="score-value">{property.suitabilityScore}</span>
-                      <span className="score-label">{getSuitabilityLabel(property.suitabilityScore)}</span>
+                      <div className="property-header">
+                        <div>
+                          <h3>{property.name}</h3>
+                          <p className="location">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                              <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                            {property.location}
+                          </p>
+                        </div>
+                        <div 
+                          className="score-badge"
+                          style={{ 
+                            backgroundColor: `${getSuitabilityColor(property.suitabilityScore)}20`,
+                            borderColor: getSuitabilityColor(property.suitabilityScore),
+                            color: getSuitabilityColor(property.suitabilityScore)
+                          }}
+                        >
+                          <span className="score-value">{property.suitabilityScore}</span>
+                          <span className="score-label">{getSuitabilityLabel(property.suitabilityScore)}</span>
+                        </div>
+                      </div>
+
+                      <div className="property-metrics">
+                        <div className="metric">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="3" y1="9" x2="21" y2="9"/>
+                            <line x1="9" y1="21" x2="9" y2="9"/>
+                          </svg>
+                          <span className="metric-label">Size</span>
+                          <span className="metric-value">{property.acres} acres</span>
+                        </div>
+                        <div className="metric">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                          </svg>
+                          <span className="metric-label">Slope</span>
+                          <span className="metric-value">{property.slope}°</span>
+                        </div>
+                        <div className="metric">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="5"/>
+                            <line x1="12" y1="1" x2="12" y2="3"/>
+                          </svg>
+                          <span className="metric-label">Sun</span>
+                          <span className="metric-value">{property.sunlightHours}h</span>
+                        </div>
+                        <div className="metric">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="12" y1="1" x2="12" y2="23"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                          </svg>
+                          <span className="metric-label">Grid</span>
+                          <span className="metric-value">{property.gridDistance}mi</span>
+                        </div>
+                      </div>
+
+                      <div className="property-footer">
+                        <div className="price">{property.price}</div>
+                        <button className="btn btn--primary btn--sm">View Details</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="details-panel">
+                {selectedProperty ? (
+                  <div className="property-details">
+                    <h2 className="section-title">Property Details</h2>
+                    <div className="detail-card">
+                      <h3>{selectedProperty.name}</h3>
+                      <div className="detail-row">
+                        <span className="detail-label">Location</span>
+                        <span className="detail-value">{selectedProperty.location}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Coordinates</span>
+                        <span className="detail-value">
+                          {selectedProperty.coordinates.lat.toFixed(4)}, {selectedProperty.coordinates.lng.toFixed(4)}
+                        </span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Terrain Type</span>
+                        <span className="detail-value">{selectedProperty.terrain}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Zoning</span>
+                        <span className="detail-value">{selectedProperty.zoning}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Total Acreage</span>
+                        <span className="detail-value">{selectedProperty.acres} acres</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Price</span>
+                        <span className="detail-value">{selectedProperty.price}</span>
+                      </div>
+                    </div>
+
+                    <div className="detail-card">
+                      <h4>Solar Suitability Analysis</h4>
+                      <div className="suitability-score">
+                        <div className="score-circle" style={{ borderColor: getSuitabilityColor(selectedProperty.suitabilityScore) }}>
+                          <span className="score-number">{selectedProperty.suitabilityScore}</span>
+                          <span className="score-text">{getSuitabilityLabel(selectedProperty.suitabilityScore)}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="criteria-list">
+                        <div className="criteria-item">
+                          <div className="criteria-header">
+                            <span>Slope Analysis</span>
+                            <span className={selectedProperty.slope <= 5 ? 'status status--success' : 'status status--warning'}>
+                              {selectedProperty.slope <= 5 ? 'Optimal' : 'Acceptable'}
+                            </span>
+                          </div>
+                          <div className="progress-bar">
+                            <div 
+                              className="progress-fill"
+                              style={{ 
+                                width: `${Math.max(0, 100 - (selectedProperty.slope * 10))}%`,
+                                backgroundColor: selectedProperty.slope <= 5 ? 'var(--color-success)' : 'var(--color-warning)'
+                              }}
+                            />
+                          </div>
+                          <p className="criteria-note">
+                            {selectedProperty.slope}° slope (ideal: &lt;5°)
+                          </p>
+                        </div>
+
+                        <div className="criteria-item">
+                          <div className="criteria-header">
+                            <span>Sunlight Exposure</span>
+                            <span className={selectedProperty.sunlightHours >= 8 ? 'status status--success' : 'status status--warning'}>
+                              {selectedProperty.sunlightHours >= 8 ? 'Excellent' : 'Good'}
+                            </span>
+                          </div>
+                          <div className="progress-bar">
+                            <div 
+                              className="progress-fill"
+                              style={{ 
+                                width: `${(selectedProperty.sunlightHours / 12) * 100}%`,
+                                backgroundColor: 'var(--color-success)'
+                              }}
+                            />
+                          </div>
+                          <p className="criteria-note">
+                            {selectedProperty.sunlightHours} hours daily average
+                          </p>
+                        </div>
+
+                        <div className="criteria-item">
+                          <div className="criteria-header">
+                            <span>Grid Proximity</span>
+                            <span className={selectedProperty.gridDistance <= 2 ? 'status status--success' : 'status status--warning'}>
+                              {selectedProperty.gridDistance <= 2 ? 'Close' : 'Moderate'}
+                            </span>
+                          </div>
+                          <div className="progress-bar">
+                            <div 
+                              className="progress-fill"
+                              style={{ 
+                                width: `${Math.max(0, 100 - (selectedProperty.gridDistance * 20))}%`,
+                                backgroundColor: selectedProperty.gridDistance <= 2 ? 'var(--color-success)' : 'var(--color-warning)'
+                              }}
+                            />
+                          </div>
+                          <p className="criteria-note">
+                            {selectedProperty.gridDistance} miles to nearest connection
+                          </p>
+                        </div>
+
+                        <div className="criteria-item">
+                          <div className="criteria-header">
+                            <span>Land Size</span>
+                            <span className={selectedProperty.acres >= 50 ? 'status status--success' : 'status status--info'}>
+                              {selectedProperty.acres >= 50 ? 'Large-scale ready' : 'Community-scale'}
+                            </span>
+                          </div>
+                          <div className="progress-bar">
+                            <div 
+                              className="progress-fill"
+                              style={{ 
+                                width: `${Math.min(100, (selectedProperty.acres / 200) * 100)}%`,
+                                backgroundColor: 'var(--color-primary)'
+                              }}
+                            />
+                          </div>
+                          <p className="criteria-note">
+                            {selectedProperty.acres} acres (min. 50 for commercial)
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="action-buttons">
+                        <button className="btn btn--primary btn--full-width">Request Site Visit</button>
+                        <button className="btn btn--outline btn--full-width">Download Report</button>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="property-metrics">
-                    <div className="metric">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="3" y1="9" x2="21" y2="9"/>
-                        <line x1="9" y1="21" x2="9" y2="9"/>
-                      </svg>
-                      <span className="metric-label">Size</span>
-                      <span className="metric-value">{property.acres} acres</span>
-                    </div>
-                    <div className="metric">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                      </svg>
-                      <span className="metric-label">Slope</span>
-                      <span className="metric-value">{property.slope}°</span>
-                    </div>
-                    <div className="metric">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="5"/>
-                        <line x1="12" y1="1" x2="12" y2="3"/>
-                      </svg>
-                      <span className="metric-label">Sun</span>
-                      <span className="metric-value">{property.sunlightHours}h</span>
-                    </div>
-                    <div className="metric">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="12" y1="1" x2="12" y2="23"/>
-                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                      </svg>
-                      <span className="metric-label">Grid</span>
-                      <span className="metric-value">{property.gridDistance}mi</span>
-                    </div>
+                ) : (
+                  <div className="empty-state">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                      <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    <h3>Select a Property</h3>
+                    <p>Click on any property card to view detailed solar suitability analysis</p>
                   </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="map-view">
+            <div className="map-container">
+              <MapContainer
+                center={[35.5, -110.0]}
+                zoom={6}
+                style={{ height: '100%', width: '100%' }}
+                scrollWheelZoom={true}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                
+                <HeatmapLayer properties={mockProperties} />
 
-                  <div className="property-footer">
-                    <div className="price">{property.price}</div>
-                    <button className="btn btn--primary btn--sm">View Details</button>
+                {mockProperties.map((property) => (
+                  <CircleMarker
+                    key={property.id}
+                    center={[property.coordinates.lat, property.coordinates.lng]}
+                    radius={hoveredProperty === property.id ? 12 : 8}
+                    fillColor={getMarkerColor(property.suitabilityScore)}
+                    fillOpacity={0.9}
+                    color="#fff"
+                    weight={2}
+                    eventHandlers={{
+                      mouseover: () => setHoveredProperty(property.id),
+                      mouseout: () => setHoveredProperty(null),
+                      click: () => setSelectedProperty(property)
+                    }}
+                  >
+                    <Popup>
+                      <div className="map-popup">
+                        <h4>{property.name}</h4>
+                        <p className="popup-location">{property.location}</p>
+                        <div className="popup-score" style={{ color: getSuitabilityColor(property.suitabilityScore) }}>
+                          Score: {property.suitabilityScore}
+                        </div>
+                        <div className="popup-details">
+                          <span>{property.acres} acres</span>
+                          <span>{property.sunlightHours}h sun</span>
+                        </div>
+                        <div className="popup-price">{property.price}</div>
+                      </div>
+                    </Popup>
+                  </CircleMarker>
+                ))}
+              </MapContainer>
+            </div>
+
+            <div className="map-sidebar">
+              <div className="map-legend">
+                <h3>Solar Suitability Heat Map</h3>
+                <p className="legend-description">
+                  Visualizing land solar potential across the southwestern United States
+                </p>
+                
+                <div className="legend-scale">
+                  <h4>Suitability Score</h4>
+                  <div className="legend-items">
+                    <div className="legend-item">
+                      <div className="legend-color" style={{ backgroundColor: '#1a6873' }}></div>
+                      <span>95-100: Exceptional</span>
+                    </div>
+                    <div className="legend-item">
+                      <div className="legend-color" style={{ backgroundColor: '#32b8c6' }}></div>
+                      <span>85-94: Excellent</span>
+                    </div>
+                    <div className="legend-item">
+                      <div className="legend-color" style={{ backgroundColor: '#5dc9d4' }}></div>
+                      <span>80-84: Very Good</span>
+                    </div>
+                    <div className="legend-item">
+                      <div className="legend-color" style={{ backgroundColor: '#a84b2f' }}></div>
+                      <span>75-79: Good</span>
+                    </div>
+                    <div className="legend-item">
+                      <div className="legend-color" style={{ backgroundColor: '#e68161' }}></div>
+                      <span>70-74: Fair</span>
+                    </div>
+                    <div className="legend-item">
+                      <div className="legend-color" style={{ backgroundColor: '#ff5459' }}></div>
+                      <span>&lt;70: Poor</span>
+                    </div>
                   </div>
                 </div>
-              ))}
+
+                <div className="map-instructions">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                  </svg>
+                  <p>Hover over markers to highlight. Click markers to view full property details.</p>
+                </div>
+              </div>
+
+              <div className="map-property-list">
+                <h4>Top Properties</h4>
+                {sortedProperties.slice(0, 3).map((property) => (
+                  <div 
+                    key={property.id}
+                    className="map-property-item"
+                    onClick={() => setSelectedProperty(property)}
+                    onMouseEnter={() => setHoveredProperty(property.id)}
+                    onMouseLeave={() => setHoveredProperty(null)}
+                  >
+                    <div className="map-property-header">
+                      <span className="map-property-name">{property.name}</span>
+                      <span 
+                        className="map-property-score"
+                        style={{ color: getSuitabilityColor(property.suitabilityScore) }}
+                      >
+                        {property.suitabilityScore}
+                      </span>
+                    </div>
+                    <span className="map-property-location">{property.location}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-
-          <div className="details-panel">
-            {selectedProperty ? (
-              <div className="property-details">
-                <h2 className="section-title">Property Details</h2>
-                <div className="detail-card">
-                  <h3>{selectedProperty.name}</h3>
-                  <div className="detail-row">
-                    <span className="detail-label">Location</span>
-                    <span className="detail-value">{selectedProperty.location}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Coordinates</span>
-                    <span className="detail-value">
-                      {selectedProperty.coordinates.lat.toFixed(4)}, {selectedProperty.coordinates.lng.toFixed(4)}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Terrain Type</span>
-                    <span className="detail-value">{selectedProperty.terrain}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Zoning</span>
-                    <span className="detail-value">{selectedProperty.zoning}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Total Acreage</span>
-                    <span className="detail-value">{selectedProperty.acres} acres</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Price</span>
-                    <span className="detail-value">{selectedProperty.price}</span>
-                  </div>
-                </div>
-
-                <div className="detail-card">
-                  <h4>Solar Suitability Analysis</h4>
-                  <div className="suitability-score">
-                    <div className="score-circle" style={{ borderColor: getSuitabilityColor(selectedProperty.suitabilityScore) }}>
-                      <span className="score-number">{selectedProperty.suitabilityScore}</span>
-                      <span className="score-text">{getSuitabilityLabel(selectedProperty.suitabilityScore)}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="criteria-list">
-                    <div className="criteria-item">
-                      <div className="criteria-header">
-                        <span>Slope Analysis</span>
-                        <span className={selectedProperty.slope <= 5 ? 'status status--success' : 'status status--warning'}>
-                          {selectedProperty.slope <= 5 ? 'Optimal' : 'Acceptable'}
-                        </span>
-                      </div>
-                      <div className="progress-bar">
-                        <div 
-                          className="progress-fill"
-                          style={{ 
-                            width: `${Math.max(0, 100 - (selectedProperty.slope * 10))}%`,
-                            backgroundColor: selectedProperty.slope <= 5 ? 'var(--color-success)' : 'var(--color-warning)'
-                          }}
-                        />
-                      </div>
-                      <p className="criteria-note">
-                        {selectedProperty.slope}° slope (ideal: &lt;5°)
-                      </p>
-                    </div>
-
-                    <div className="criteria-item">
-                      <div className="criteria-header">
-                        <span>Sunlight Exposure</span>
-                        <span className={selectedProperty.sunlightHours >= 8 ? 'status status--success' : 'status status--warning'}>
-                          {selectedProperty.sunlightHours >= 8 ? 'Excellent' : 'Good'}
-                        </span>
-                      </div>
-                      <div className="progress-bar">
-                        <div 
-                          className="progress-fill"
-                          style={{ 
-                            width: `${(selectedProperty.sunlightHours / 12) * 100}%`,
-                            backgroundColor: 'var(--color-success)'
-                          }}
-                        />
-                      </div>
-                      <p className="criteria-note">
-                        {selectedProperty.sunlightHours} hours daily average
-                      </p>
-                    </div>
-
-                    <div className="criteria-item">
-                      <div className="criteria-header">
-                        <span>Grid Proximity</span>
-                        <span className={selectedProperty.gridDistance <= 2 ? 'status status--success' : 'status status--warning'}>
-                          {selectedProperty.gridDistance <= 2 ? 'Close' : 'Moderate'}
-                        </span>
-                      </div>
-                      <div className="progress-bar">
-                        <div 
-                          className="progress-fill"
-                          style={{ 
-                            width: `${Math.max(0, 100 - (selectedProperty.gridDistance * 20))}%`,
-                            backgroundColor: selectedProperty.gridDistance <= 2 ? 'var(--color-success)' : 'var(--color-warning)'
-                          }}
-                        />
-                      </div>
-                      <p className="criteria-note">
-                        {selectedProperty.gridDistance} miles to nearest connection
-                      </p>
-                    </div>
-
-                    <div className="criteria-item">
-                      <div className="criteria-header">
-                        <span>Land Size</span>
-                        <span className={selectedProperty.acres >= 50 ? 'status status--success' : 'status status--info'}>
-                          {selectedProperty.acres >= 50 ? 'Large-scale ready' : 'Community-scale'}
-                        </span>
-                      </div>
-                      <div className="progress-bar">
-                        <div 
-                          className="progress-fill"
-                          style={{ 
-                            width: `${Math.min(100, (selectedProperty.acres / 200) * 100)}%`,
-                            backgroundColor: 'var(--color-primary)'
-                          }}
-                        />
-                      </div>
-                      <p className="criteria-note">
-                        {selectedProperty.acres} acres (min. 50 for commercial)
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="action-buttons">
-                    <button className="btn btn--primary btn--full-width">Request Site Visit</button>
-                    <button className="btn btn--outline btn--full-width">Download Report</button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="empty-state">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                  <circle cx="12" cy="10" r="3"/>
-                </svg>
-                <h3>Select a Property</h3>
-                <p>Click on any property card to view detailed solar suitability analysis</p>
-              </div>
-            )}
-          </div>
-        </div>
+        )}
       </main>
     </div>
   )

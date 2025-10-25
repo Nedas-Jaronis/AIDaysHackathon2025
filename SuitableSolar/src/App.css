@@ -723,3 +723,308 @@ body {
     width: 100%;
   }
 }
+
+/* Add these styles to the END of your existing App.css file */
+
+/* View Tabs */
+.view-tabs {
+  display: flex;
+  gap: var(--space-8);
+  margin-bottom: var(--space-24);
+  border-bottom: 2px solid var(--color-card-border);
+}
+
+.tab-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--space-20);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+  font-family: var(--font-family-base);
+}
+
+.tab-button:hover {
+  color: var(--color-text);
+  background: var(--color-secondary);
+}
+
+.tab-button.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.tab-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Map View */
+.map-view {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: var(--space-24);
+  height: calc(100vh - 250px);
+  min-height: 600px;
+}
+
+.map-container {
+  background: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+}
+
+.map-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Map Sidebar */
+.map-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-20);
+  overflow-y: auto;
+}
+
+.map-legend {
+  background: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-20);
+}
+
+.map-legend h3 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-8);
+  color: var(--color-text);
+}
+
+.legend-description {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-20);
+}
+
+.legend-scale h4 {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-12);
+  color: var(--color-text);
+}
+
+.legend-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  font-size: var(--font-size-sm);
+}
+
+.legend-color {
+  width: 40px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.map-instructions {
+  display: flex;
+  gap: var(--space-12);
+  margin-top: var(--space-20);
+  padding: var(--space-12);
+  background: var(--color-secondary);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  align-items: flex-start;
+}
+
+.map-instructions svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-primary);
+}
+
+.map-instructions p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Map Property List */
+.map-property-list {
+  background: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-20);
+}
+
+.map-property-list h4 {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-16);
+  color: var(--color-text);
+}
+
+.map-property-item {
+  padding: var(--space-12);
+  border-radius: var(--radius-base);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+  margin-bottom: var(--space-8);
+}
+
+.map-property-item:hover {
+  background: var(--color-secondary);
+}
+
+.map-property-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.map-property-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.map-property-score {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.map-property-location {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Responsive Map View */
+@media (max-width: 1024px) {
+  .map-view {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .map-container {
+    height: 500px;
+  }
+
+  .map-sidebar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-16);
+  }
+}
+
+@media (max-width: 768px) {
+  .view-tabs {
+    width: 100%;
+  }
+
+  .tab-button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .map-sidebar {
+    grid-template-columns: 1fr;
+  }
+}
+/* Add to the END of your existing App.css */
+
+/* Leaflet overrides */
+.leaflet-container {
+  font-family: var(--font-family-base);
+  background: var(--color-background);
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-card-border);
+}
+
+.leaflet-popup-tip {
+  background: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+}
+
+.leaflet-control-attribution {
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.leaflet-control-zoom a {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.leaflet-control-zoom a:hover {
+  background: var(--color-secondary);
+}
+
+/* Map Popup Styles */
+.map-popup {
+  padding: var(--space-4);
+  min-width: 200px;
+}
+
+.map-popup h4 {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--space-4) 0;
+  color: var(--color-text);
+}
+
+.popup-location {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-8) 0;
+}
+
+.popup-score {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  margin: var(--space-8) 0;
+}
+
+.popup-details {
+  display: flex;
+  gap: var(--space-12);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: var(--space-8) 0;
+}
+
+.popup-price {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  margin-top: var(--space-8);
+}
