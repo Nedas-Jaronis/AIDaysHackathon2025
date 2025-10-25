@@ -1,65 +1,86 @@
+import pandas as pd
 import requests
 import json
+import time
+from tqdm import tqdm
 
-# Your API credentials
+# Your API key
 API_KEY = "vR8le25b3vHo6kMP4nsv8HxkFbvDPRkuyQLl5X8n"
-EMAIL = "jaronisnedas@ufl.edu"
 
-lat = 27.7
-lon = -81.7  # Note: US longitudes should be NEGATIVE
+# Input / Output paths
+INPUT_FILE = "backend/data/addresses_geocoded.csv"
+OUTPUT_FILE = "backend/data/solar_results.csv"
 
-url = f"https://developer.nrel.gov/api/solar/solar_resource/v1.json"
+# Base URL for NREL Solar Resource API
+URL = "https://developer.nrel.gov/api/solar/solar_resource/v1.json"
 
-params = {
-    "api_key": API_KEY,
-    "lat": lat,
-    "lon": lon
-}
+# Read geocoded CSV
+df = pd.read_csv(INPUT_FILE)
 
-print("Making request to NREL API...")
-print(f"Location: {lat}, {lon}")
-print("-" * 50)
+# Prepare result storage
+results = []
 
-try:
-    response = requests.get(url, params=params)
+print(f"Processing {len(df)} locations...")
 
-    print(f"Status Code: {response.status_code}")
+# Iterate through each row
+for _, row in tqdm(df.iterrows(), total=len(df)):
+    lat = row["latitude"]
+    lon = row["longitude"]
+    address = row["Address"]
 
-    if response.status_code == 200:
+    if pd.isna(lat) or pd.isna(lon):
+        print(f"⚠️ Skipping {address} — missing coordinates")
+        continue
+
+    # Prepare request
+    params = {
+        "api_key": API_KEY,
+        "lat": lat,
+        "lon": lon
+    }
+
+    try:
+        response = requests.get(URL, params=params)
         data = response.json()
 
-        if 'errors' in data:
-            print("\n⚠️ API returned errors:")
-            print(json.dumps(data['errors'], indent=2))
+        # Default values
+        ghi_annual = dni_annual = tilt_annual = None
+        ghi_monthly = {}
 
-        print("\nFull API Response:")
-        print(json.dumps(data, indent=2))
+        if response.status_code == 200 and "outputs" in data:
+            outputs = data["outputs"]
 
-        if 'outputs' in data:
-            print("\n" + "=" * 50)
-            print("KEY SOLAR METRICS:")
-            print("=" * 50)
+            ghi_annual = outputs["avg_ghi"]["annual"]
+            dni_annual = outputs["avg_dni"]["annual"]
+            tilt_annual = outputs["avg_lat_tilt"]["annual"]
+            ghi_monthly = outputs["avg_ghi"]["monthly"]
 
-            outputs = data['outputs']
+        # Store result
+        results.append({
+            "Address": address,
+            "Latitude": lat,
+            "Longitude": lon,
+            "Annual_GHI": ghi_annual,
+            "Annual_DNI": dni_annual,
+            "Annual_Tilt_Latitude": tilt_annual,
+            **{f"GHI_{m}": v for m, v in ghi_monthly.items()}
+        })
 
-            print(
-                f"\nAnnual Average GHI: {outputs['avg_ghi']['annual']} kWh/m²/day")
-            print(
-                f"Annual Average DNI: {outputs['avg_dni']['annual']} kWh/m²/day")
-            print(
-                f"Annual Average Tilt at Latitude: {outputs['avg_lat_tilt']['annual']} kWh/m²/day")
+        # Be nice to API
+        time.sleep(1)
 
-            print("\nMonthly GHI Data:")
-            for month, value in outputs['avg_ghi']['monthly'].items():
-                print(f"  {month}: {value} kWh/m²/day")
-        else:
-            print("\n⚠️ No 'outputs' data in response")
+    except Exception as e:
+        print(f"❌ Error for {address}: {e}")
+        results.append({
+            "Address": address,
+            "Latitude": lat,
+            "Longitude": lon,
+            "Error": str(e)
+        })
+        time.sleep(1)
 
-    else:
-        print(f"\n❌ Error: API returned status code {response.status_code}")
-        print(f"Response: {response.text}")
+# Convert to DataFrame and export
+result_df = pd.DataFrame(results)
+result_df.to_csv(OUTPUT_FILE, index=False)
 
-except Exception as e:
-    print(f"\n❌ Error occurred: {str(e)}")
-    import traceback
-    traceback.print_exc()
+print(f"\n✅ Done! Results saved to: {OUTPUT_FILE}")
