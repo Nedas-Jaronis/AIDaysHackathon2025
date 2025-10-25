@@ -17,6 +17,7 @@ URL = "https://developer.nrel.gov/api/solar/solar_resource/v1.json"
 # Read geocoded CSV
 df = pd.read_csv(INPUT_FILE)
 
+
 # Prepare result storage
 results = []
 
@@ -26,7 +27,7 @@ print(f"Processing {len(df)} locations...")
 for _, row in tqdm(df.iterrows(), total=len(df)):
     lat = row["latitude"]
     lon = row["longitude"]
-    address = row["Address"]
+    address = row["address"]
 
     if pd.isna(lat) or pd.isna(lon):
         print(f"⚠️ Skipping {address} — missing coordinates")
