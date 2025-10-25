@@ -2,8 +2,8 @@ import requests
 import json
 
 # Your API credentials
-API_KEY = ""
-EMAIL = ""
+API_KEY = "vR8le25b3vHo6kMP4nsv8HxkFbvDPRkuyQLl5X8n"
+EMAIL = "jaronisnedas@ufl.edu"
 
 # Test with one property location (Phoenix, Arizona - Sunset Valley Ranch)
 lat = 33.4484
