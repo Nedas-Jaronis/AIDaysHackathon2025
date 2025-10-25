@@ -6,7 +6,7 @@ import time
 INPUT_CSV = "backend/data/addresses.csv"       # your input file with addresses
 OUTPUT_CSV = "backend/data/addresses_geocoded.csv"
 ADDRESS_COLUMN = "Address"        # name of the column in your CSV with the address
-DELAY = 1                         # seconds between requests (to respect OSM rate limits)
+DELAY = 1  
 
 # --- Read CSV ---
 df = pd.read_csv(INPUT_CSV)
@@ -21,7 +21,7 @@ for i, row in df.iterrows():
     print(f"Geocoding ({i+1}/{len(df)}): {address}")
 
     try:
-        url = f"https://nominatim.openstreetmap.org/search"
+        url = "https://nominatim.openstreetmap.org/search"
         params = {
             "q": address,
             "format": "json",
@@ -40,13 +40,25 @@ for i, row in df.iterrows():
             df.at[i, "longitude"] = data[0]["lon"]
         else:
             print(f"⚠️ No results for: {address}")
+            df.at[i, "latitude"] = None
+            df.at[i, "longitude"] = None
 
     except Exception as e:
         print(f"❌ Error geocoding {address}: {e}")
+        df.at[i, "latitude"] = None
+        df.at[i, "longitude"] = None
 
-    # Respect Nominatim usage policy (1 request per second max)
+    # Respect Nominatim usage policy (1 request/sec)
     time.sleep(DELAY)
 
-# --- Save the new CSV ---
+# --- Remove rows without coordinates ---
+before_count = len(df)
+df = df.dropna(subset=["latitude", "longitude"])
+after_count = len(df)
+removed_count = before_count - after_count
+
+print(f"\n🧹 Removed {removed_count} rows without coordinates.")
+
+# --- Save the cleaned CSV ---
 df.to_csv(OUTPUT_CSV, index=False)
-print(f"\n✅ Geocoding complete! Results saved to {OUTPUT_CSV}")
+print(f"✅ Geocoding complete! Clean results saved to {OUTPUT_CSV}")
