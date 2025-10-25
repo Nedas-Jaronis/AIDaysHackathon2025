@@ -3,9 +3,9 @@ import pandas as pd
 import time
 
 # --- Configuration ---
-INPUT_CSV = "addresses.csv"       # your input file with addresses
-OUTPUT_CSV = "addresses_geocoded.csv"
-ADDRESS_COLUMN = "address"        # name of the column in your CSV with the address
+INPUT_CSV = "backend/data/addresses.csv"       # your input file with addresses
+OUTPUT_CSV = "backend/data/addresses_geocoded.csv"
+ADDRESS_COLUMN = "Address"        # name of the column in your CSV with the address
 DELAY = 1                         # seconds between requests (to respect OSM rate limits)
 
 # --- Read CSV ---
