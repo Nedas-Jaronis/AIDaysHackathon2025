@@ -5,27 +5,29 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
     """
     Compute a Solar Suitability Score (0–100) for each property
     using irradiance strength, seasonal stability, latitude adjustment,
-    and proximity to the nearest grid/substation.
+    tilt of the land, and proximity to the nearest substation.
     """
+
+    # Ensure column names are stripped of spaces
+    df.columns = df.columns.str.strip()
 
     # --- Step 1: Determine min/max for normalization ---
     min_ghi = df["Annual_GHI"].min()
     max_ghi = df["Annual_GHI"].max()
-    max_distance = df["grid_distance_km"].max()
+    max_distance = df["nearest_substation_km"].max()
 
     scores = []
 
     for _, row in df.iterrows():
-        months = [
+        months = np.array([
             row["GHI_jan"], row["GHI_feb"], row["GHI_mar"], row["GHI_apr"],
             row["GHI_may"], row["GHI_jun"], row["GHI_jul"], row["GHI_aug"],
             row["GHI_sep"], row["GHI_oct"], row["GHI_nov"], row["GHI_dec"]
-        ]
-        months = np.array(months, dtype=float)
+        ], dtype=float)
 
         # 1️⃣ Irradiance Strength (normalized)
         irradiance = (row["Annual_GHI"] + row["Annual_Tilt_Latitude"]) / 2
-        normalized_irr = (irradiance - min_ghi) / (max_ghi - min_ghi)
+        normalized_irr = (irradiance - min_ghi) / (max_ghi - min_ghi) if max_ghi != min_ghi else 1
 
         # 2️⃣ Seasonal Stability
         mean_ghi = np.mean(months)
@@ -35,34 +37,35 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
         # 3️⃣ Latitude Adjustment
         lat_factor = 1 - (abs(row["Latitude"]) / 90) * 0.3
 
-        # 4️⃣ Grid Distance Factor (closer is better)
-        distance_factor = 1 - (row["grid_distance_km"] / max_distance) if max_distance != 0 else 1
+        # 4️⃣ Tilt Factor
+        optimal_tilt = abs(row["Latitude"])
+        tilt_factor = 1 - (abs(row["tilt_deg"] - optimal_tilt) / 90)  # scaled 0-1
+
+        # 5️⃣ Substation Distance Factor
+        distance_factor = 1 - (row["nearest_substation_km"] / max_distance) if max_distance != 0 else 1
 
         # Combine (weighted)
-        score = ((normalized_irr * 0.5) +      # 50%
+        score = ((normalized_irr * 0.4) +      # 40%
                  (stability * 0.2) +           # 20%
-                 (lat_factor * 0.15) +         # 15%
+                 (lat_factor * 0.1) +          # 10%
+                 (tilt_factor * 0.15) +        # 15%
                  (distance_factor * 0.15)) * 100  # 15%
 
         scores.append(np.clip(score, 0, 100))
 
-    df["Solar_Suitability_Score"] = scores
+    # Add new column to the original dataframe
+    df["solar_score"] = scores
     return df
 
 
-
 if __name__ == "__main__":
-    # Load existing CSV
-    df = pd.read_csv("backend/data/solar_with_grid.csv")
+    # Load original CSV (with tilt_deg and nearest_substation_km already included)
+    df = pd.read_csv("backend/data/final_dataset.csv")
 
-    # Compute solar suitability
+    # Compute and append scores
     df = compute_solar_suitability(df)
 
-    # Keep only Address and Solar_Suitability_Score
-    df_result = df[["Address", "Solar_Suitability_Score"]]
+    # Save back to the same CSV or a new one
+    df.to_csv("backend/data/final_dataset.csv", index=False)
 
-    # Save back to the same CSV (or a new one)
-    df_result.to_csv("backend/data/solar_scores.csv", index=False)
-
-    # Preview
-    print(df_result.head())
+    print("✅ Solar Suitability Scores added to CSV.")
