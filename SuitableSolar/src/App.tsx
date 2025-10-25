@@ -5,7 +5,6 @@ import 'leaflet/dist/leaflet.css'
 import 'leaflet.heat'
 import './App.css'
 
-
 interface Property {
   id: number
   name: string
@@ -15,10 +14,13 @@ interface Property {
   sunlightHours: number
   gridDistance: number
   suitabilityScore: number
-  price: string
+  price?: string
   coordinates: { lat: number; lng: number }
   terrain: string
   zoning: string
+  forSale: boolean
+  owner?: string
+  estimatedValue?: string
 }
 
 const mockProperties: Property[] = [
@@ -34,7 +36,8 @@ const mockProperties: Property[] = [
     price: "$2,850,000",
     coordinates: { lat: 33.4484, lng: -112.0740 },
     terrain: "Flat grassland",
-    zoning: "Agricultural"
+    zoning: "Agricultural",
+    forSale: true
   },
   {
     id: 2,
@@ -48,7 +51,8 @@ const mockProperties: Property[] = [
     price: "$3,200,000",
     coordinates: { lat: 32.2226, lng: -110.9747 },
     terrain: "Desert flat",
-    zoning: "Mixed-use"
+    zoning: "Mixed-use",
+    forSale: true
   },
   {
     id: 3,
@@ -62,7 +66,8 @@ const mockProperties: Property[] = [
     price: "$1,950,000",
     coordinates: { lat: 38.5816, lng: -121.4944 },
     terrain: "Rolling hills",
-    zoning: "Agricultural"
+    zoning: "Agricultural",
+    forSale: true
   },
   {
     id: 4,
@@ -76,7 +81,8 @@ const mockProperties: Property[] = [
     price: "$3,750,000",
     coordinates: { lat: 36.1699, lng: -115.1398 },
     terrain: "Flat desert",
-    zoning: "Commercial"
+    zoning: "Commercial",
+    forSale: true
   },
   {
     id: 5,
@@ -90,7 +96,8 @@ const mockProperties: Property[] = [
     price: "$1,450,000",
     coordinates: { lat: 35.0844, lng: -106.6504 },
     terrain: "Hilly terrain",
-    zoning: "Agricultural"
+    zoning: "Agricultural",
+    forSale: true
   },
   {
     id: 6,
@@ -104,25 +111,106 @@ const mockProperties: Property[] = [
     price: "$2,675,000",
     coordinates: { lat: 31.7619, lng: -106.4850 },
     terrain: "Flat plains",
-    zoning: "Agricultural"
+    zoning: "Agricultural",
+    forSale: true
+  },
+  // Properties not for sale but suitable
+  {
+    id: 7,
+    name: "Mojave Solar Corridor",
+    location: "Barstow, California",
+    acres: 320,
+    slope: 1.2,
+    sunlightHours: 10.5,
+    gridDistance: 0.3,
+    suitabilityScore: 99,
+    estimatedValue: "$5,100,000",
+    coordinates: { lat: 34.8958, lng: -117.0228 },
+    terrain: "Desert plain",
+    zoning: "Unincorporated",
+    forSale: false,
+    owner: "Private Ranch"
+  },
+  {
+    id: 8,
+    name: "Sonoran Flats",
+    location: "Yuma, Arizona",
+    acres: 285,
+    slope: 0.8,
+    sunlightHours: 11.0,
+    gridDistance: 1.5,
+    suitabilityScore: 97,
+    estimatedValue: "$4,200,000",
+    coordinates: { lat: 32.6927, lng: -114.6277 },
+    terrain: "Flat desert",
+    zoning: "Agricultural",
+    forSale: false,
+    owner: "Family Trust"
+  },
+  {
+    id: 9,
+    name: "Imperial Valley Site",
+    location: "El Centro, California",
+    acres: 410,
+    slope: 1.0,
+    sunlightHours: 10.8,
+    gridDistance: 0.6,
+    suitabilityScore: 98,
+    estimatedValue: "$6,800,000",
+    coordinates: { lat: 32.7920, lng: -115.5631 },
+    terrain: "Agricultural flatland",
+    zoning: "Agricultural",
+    forSale: false,
+    owner: "Agricultural Co-op"
+  },
+  {
+    id: 10,
+    name: "Cochise County Tract",
+    location: "Willcox, Arizona",
+    acres: 195,
+    slope: 2.2,
+    sunlightHours: 9.6,
+    gridDistance: 1.8,
+    suitabilityScore: 94,
+    estimatedValue: "$2,900,000",
+    coordinates: { lat: 32.2526, lng: -109.8320 },
+    terrain: "Desert grassland",
+    zoning: "Rural",
+    forSale: false,
+    owner: "Cattle Ranch LLC"
+  },
+  {
+    id: 11,
+    name: "Pecos Valley Land",
+    location: "Carlsbad, New Mexico",
+    acres: 165,
+    slope: 3.5,
+    sunlightHours: 9.2,
+    gridDistance: 2.3,
+    suitabilityScore: 89,
+    estimatedValue: "$2,100,000",
+    coordinates: { lat: 32.4207, lng: -104.2288 },
+    terrain: "Semi-arid plain",
+    zoning: "Agricultural",
+    forSale: false,
+    owner: "Estate Holdings"
   }
 ]
 
-type ViewMode = 'list' | 'map'
+type ViewMode = 'for-sale' | 'opportunities' | 'map'
 
 // Heat layer component
 function HeatmapLayer({ properties }: { properties: Property[] }) {
   const map = useMap()
 
   useEffect(() => {
-    // Create heat points: [lat, lng, intensity]
     const heatPoints = properties.map(property => [
       property.coordinates.lat,
       property.coordinates.lng,
-      property.suitabilityScore / 100 // Normalize to 0-1
+      property.suitabilityScore / 100
     ]) as [number, number, number][]
 
-    // @ts-ignore - leaflet.heat extends L
+    // @ts-ignore
     const heatLayer = L.heatLayer(heatPoints, {
       radius: 50,
       blur: 35,
@@ -150,7 +238,7 @@ function HeatmapLayer({ properties }: { properties: Property[] }) {
 function App() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [sortBy, setSortBy] = useState<'score' | 'price' | 'acres'>('score')
-  const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [viewMode, setViewMode] = useState<ViewMode>('for-sale')
   const [hoveredProperty, setHoveredProperty] = useState<number | null>(null)
 
   const getSuitabilityColor = (score: number) => {
@@ -176,11 +264,20 @@ function App() {
     return 'Poor'
   }
 
-  const sortedProperties = [...mockProperties].sort((a, b) => {
+  const forSaleProperties = mockProperties.filter(p => p.forSale)
+  const notForSaleProperties = mockProperties.filter(p => !p.forSale)
+
+  const sortedForSale = [...forSaleProperties].sort((a, b) => {
     if (sortBy === 'score') return b.suitabilityScore - a.suitabilityScore
     if (sortBy === 'acres') return b.acres - a.acres
     return 0
   })
+
+  const sortedNotForSale = [...notForSaleProperties].sort((a, b) => 
+    b.suitabilityScore - a.suitabilityScore
+  )
+
+  const currentProperties = viewMode === 'for-sale' ? sortedForSale : sortedNotForSale
 
   return (
     <div className="app">
@@ -219,18 +316,24 @@ function App() {
       <main className="main-content">
         <div className="view-tabs">
           <button 
-            className={`tab-button ${viewMode === 'list' ? 'active' : ''}`}
-            onClick={() => setViewMode('list')}
+            className={`tab-button ${viewMode === 'for-sale' ? 'active' : ''}`}
+            onClick={() => setViewMode('for-sale')}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="8" y1="6" x2="21" y2="6"/>
-              <line x1="8" y1="12" x2="21" y2="12"/>
-              <line x1="8" y1="18" x2="21" y2="18"/>
-              <line x1="3" y1="6" x2="3.01" y2="6"/>
-              <line x1="3" y1="12" x2="3.01" y2="12"/>
-              <line x1="3" y1="18" x2="3.01" y2="18"/>
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
             </svg>
-            List View
+            For Sale
+          </button>
+          <button 
+            className={`tab-button ${viewMode === 'opportunities' ? 'active' : ''}`}
+            onClick={() => setViewMode('opportunities')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+            Opportunities
           </button>
           <button 
             className={`tab-button ${viewMode === 'map' ? 'active' : ''}`}
@@ -245,7 +348,7 @@ function App() {
           </button>
         </div>
 
-        {viewMode === 'list' ? (
+        {viewMode !== 'map' ? (
           <>
             <div className="controls">
               <div className="search-bar">
@@ -259,28 +362,43 @@ function App() {
                   className="form-control"
                 />
               </div>
-              <div className="sort-controls">
-                <label className="form-label">Sort by:</label>
-                <select 
-                  className="form-control" 
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                >
-                  <option value="score">Suitability Score</option>
-                  <option value="acres">Land Size</option>
-                  <option value="price">Price</option>
-                </select>
-              </div>
+              {viewMode === 'for-sale' && (
+                <div className="sort-controls">
+                  <label className="form-label">Sort by:</label>
+                  <select 
+                    className="form-control" 
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                  >
+                    <option value="score">Suitability Score</option>
+                    <option value="acres">Land Size</option>
+                    <option value="price">Price</option>
+                  </select>
+                </div>
+              )}
             </div>
+
+            {viewMode === 'opportunities' && (
+              <div className="info-banner">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="16" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <p>These properties are not currently for sale but have exceptional solar potential. Contact owners to explore acquisition opportunities.</p>
+              </div>
+            )}
 
             <div className="content-grid">
               <div className="properties-list">
-                <h2 className="section-title">Available Properties</h2>
+                <h2 className="section-title">
+                  {viewMode === 'for-sale' ? 'Available Properties' : 'High-Potential Opportunities'}
+                </h2>
                 <div className="property-cards">
-                  {sortedProperties.map((property) => (
+                  {currentProperties.map((property) => (
                     <div 
                       key={property.id}
-                      className={`property-card ${selectedProperty?.id === property.id ? 'selected' : ''}`}
+                      className={`property-card ${selectedProperty?.id === property.id ? 'selected' : ''} ${!property.forSale ? 'opportunity-card' : ''}`}
                       onClick={() => setSelectedProperty(property)}
                     >
                       <div className="property-header">
@@ -342,9 +460,24 @@ function App() {
                         </div>
                       </div>
 
+                      {!property.forSale && property.owner && (
+                        <div className="owner-section">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                          </svg>
+                          <span>Owner: {property.owner}</span>
+                        </div>
+                      )}
+
                       <div className="property-footer">
-                        <div className="price">{property.price}</div>
-                        <button className="btn btn--primary btn--sm">View Details</button>
+                        <div className="price">
+                          {property.forSale ? property.price : property.estimatedValue}
+                          {!property.forSale && <span className="price-label">Est. Value</span>}
+                        </div>
+                        <button className="btn btn--primary btn--sm">
+                          {property.forSale ? 'View Details' : 'Contact Owner'}
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -357,6 +490,11 @@ function App() {
                     <h2 className="section-title">Property Details</h2>
                     <div className="detail-card">
                       <h3>{selectedProperty.name}</h3>
+                      {!selectedProperty.forSale && (
+                        <span className="status status--warning" style={{ marginBottom: 'var(--space-12)', display: 'inline-block' }}>
+                          Not Currently For Sale
+                        </span>
+                      )}
                       <div className="detail-row">
                         <span className="detail-label">Location</span>
                         <span className="detail-value">{selectedProperty.location}</span>
@@ -379,9 +517,15 @@ function App() {
                         <span className="detail-label">Total Acreage</span>
                         <span className="detail-value">{selectedProperty.acres} acres</span>
                       </div>
+                      {selectedProperty.owner && (
+                        <div className="detail-row">
+                          <span className="detail-label">Current Owner</span>
+                          <span className="detail-value">{selectedProperty.owner}</span>
+                        </div>
+                      )}
                       <div className="detail-row">
-                        <span className="detail-label">Price</span>
-                        <span className="detail-value">{selectedProperty.price}</span>
+                        <span className="detail-label">{selectedProperty.forSale ? 'Price' : 'Estimated Value'}</span>
+                        <span className="detail-value">{selectedProperty.forSale ? selectedProperty.price : selectedProperty.estimatedValue}</span>
                       </div>
                     </div>
 
@@ -481,8 +625,17 @@ function App() {
                       </div>
 
                       <div className="action-buttons">
-                        <button className="btn btn--primary btn--full-width">Request Site Visit</button>
-                        <button className="btn btn--outline btn--full-width">Download Report</button>
+                        {selectedProperty.forSale ? (
+                          <>
+                            <button className="btn btn--primary btn--full-width">Request Site Visit</button>
+                            <button className="btn btn--outline btn--full-width">Download Report</button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="btn btn--primary btn--full-width">Contact Owner</button>
+                            <button className="btn btn--outline btn--full-width">Request Valuation</button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -541,7 +694,10 @@ function App() {
                           <span>{property.acres} acres</span>
                           <span>{property.sunlightHours}h sun</span>
                         </div>
-                        <div className="popup-price">{property.price}</div>
+                        <div className="popup-price">{property.forSale ? property.price : property.estimatedValue}</div>
+                        {!property.forSale && (
+                          <span className="status status--warning" style={{ marginTop: 'var(--space-8)', display: 'inline-block' }}>Not For Sale</span>
+                        )}
                       </div>
                     </Popup>
                   </CircleMarker>
@@ -598,7 +754,7 @@ function App() {
 
               <div className="map-property-list">
                 <h4>Top Properties</h4>
-                {sortedProperties.slice(0, 3).map((property) => (
+                {[...mockProperties].sort((a, b) => b.suitabilityScore - a.suitabilityScore).slice(0, 3).map((property) => (
                   <div 
                     key={property.id}
                     className="map-property-item"
@@ -616,6 +772,11 @@ function App() {
                       </span>
                     </div>
                     <span className="map-property-location">{property.location}</span>
+                    {!property.forSale && (
+                      <span className="status status--warning" style={{ marginTop: 'var(--space-4)', fontSize: 'var(--font-size-xs)' }}>
+                        Not For Sale
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
