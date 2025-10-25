@@ -5,9 +5,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 from CONSTANTS import *
 
-DATABASE = CONSTANTS.DATABASE
-CSV_FILE = CONSTANTS.CSV_FILE
-
 DB_PATH = Path(__file__).with_name(DATABASE)
 CSV_FILE = Path(__file__).with_name(CSV_FILE)
 
