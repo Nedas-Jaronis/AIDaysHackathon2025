@@ -1,3 +1,4 @@
 SuitableSolar/backend/dataextraction.py
 SuitableSolar/backend/.venv/*
 SuitableSolar/backend/.env
+SuitableSolar/backend/data/*
