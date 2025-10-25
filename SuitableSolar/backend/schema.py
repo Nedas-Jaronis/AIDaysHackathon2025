@@ -1,8 +1,9 @@
 # Create locations.db and table
 import sqlite3
 from pathlib import Path
+from CONSTANTS import DATABASE
 
-DB_PATH = Path(__file__).with_name("locations.db")
+DB_PATH = Path(__file__).with_name(DATABASE)
 
 DDL = """
 PRAGMA foreign_keys = ON;
