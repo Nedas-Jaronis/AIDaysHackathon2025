@@ -5,11 +5,9 @@ import json
 API_KEY = "vR8le25b3vHo6kMP4nsv8HxkFbvDPRkuyQLl5X8n"
 EMAIL = "jaronisnedas@ufl.edu"
 
-# Test with one property location (Phoenix, Arizona - Sunset Valley Ranch)
-lat = 33.4484
-lon = -112.0740
+lat = 27.7
+lon = -81.7  # Note: US longitudes should be NEGATIVE
 
-# Simple API call to get solar resource data
 url = f"https://developer.nrel.gov/api/solar/solar_resource/v1.json"
 
 params = {
@@ -25,34 +23,43 @@ print("-" * 50)
 try:
     response = requests.get(url, params=params)
 
-    # Check if request was successful
+    print(f"Status Code: {response.status_code}")
+
     if response.status_code == 200:
         data = response.json()
 
-        # Pretty print the full response
+        if 'errors' in data:
+            print("\n⚠️ API returned errors:")
+            print(json.dumps(data['errors'], indent=2))
+
         print("\nFull API Response:")
         print(json.dumps(data, indent=2))
 
-        # Extract key solar metrics
-        print("\n" + "=" * 50)
-        print("KEY SOLAR METRICS:")
-        print("=" * 50)
+        if 'outputs' in data:
+            print("\n" + "=" * 50)
+            print("KEY SOLAR METRICS:")
+            print("=" * 50)
 
-        outputs = data['outputs']
+            outputs = data['outputs']
 
-        print(
-            f"\nAnnual Average GHI: {outputs['avg_ghi']['annual']} kWh/m²/day")
-        print(f"Annual Average DNI: {outputs['avg_dni']['annual']} kWh/m²/day")
-        print(
-            f"Annual Average Tilt at Latitude: {outputs['avg_lat_tilt']['annual']} kWh/m²/day")
+            print(
+                f"\nAnnual Average GHI: {outputs['avg_ghi']['annual']} kWh/m²/day")
+            print(
+                f"Annual Average DNI: {outputs['avg_dni']['annual']} kWh/m²/day")
+            print(
+                f"Annual Average Tilt at Latitude: {outputs['avg_lat_tilt']['annual']} kWh/m²/day")
 
-        print("\nMonthly GHI Data:")
-        for month, value in outputs['avg_ghi']['monthly'].items():
-            print(f"  {month}: {value} kWh/m²/day")
+            print("\nMonthly GHI Data:")
+            for month, value in outputs['avg_ghi']['monthly'].items():
+                print(f"  {month}: {value} kWh/m²/day")
+        else:
+            print("\n⚠️ No 'outputs' data in response")
 
     else:
-        print(f"Error: API returned status code {response.status_code}")
+        print(f"\n❌ Error: API returned status code {response.status_code}")
         print(f"Response: {response.text}")
 
 except Exception as e:
-    print(f"Error occurred: {str(e)}")
+    print(f"\n❌ Error occurred: {str(e)}")
+    import traceback
+    traceback.print_exc()
