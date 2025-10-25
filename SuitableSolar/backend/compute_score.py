@@ -4,18 +4,18 @@ import numpy as np
 def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
     """
     Compute a Solar Suitability Score (0–100) for each property
-    using irradiance strength, seasonal stability, and latitude adjustment.
+    using irradiance strength, seasonal stability, latitude adjustment,
+    and proximity to the nearest grid/substation.
     """
 
     # --- Step 1: Determine min/max for normalization ---
     min_ghi = df["Annual_GHI"].min()
     max_ghi = df["Annual_GHI"].max()
+    max_distance = df["grid_distance_km"].max()
 
-    # --- Step 2: Iterate through rows and compute the score ---
     scores = []
 
     for _, row in df.iterrows():
-        # Monthly GHI columns (assuming consistent naming)
         months = [
             row["GHI_jan"], row["GHI_feb"], row["GHI_mar"], row["GHI_apr"],
             row["GHI_may"], row["GHI_jun"], row["GHI_jul"], row["GHI_aug"],
@@ -35,23 +35,25 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
         # 3️⃣ Latitude Adjustment
         lat_factor = 1 - (abs(row["Latitude"]) / 90) * 0.3
 
-        # Combine (weighted)
-        score = ((normalized_irr * 0.6) +
-                 (stability * 0.25) +
-                 (lat_factor * 0.15)) * 100
+        # 4️⃣ Grid Distance Factor (closer is better)
+        distance_factor = 1 - (row["grid_distance_km"] / max_distance) if max_distance != 0 else 1
 
-        # Clamp 0–100
+        # Combine (weighted)
+        score = ((normalized_irr * 0.5) +      # 50%
+                 (stability * 0.2) +           # 20%
+                 (lat_factor * 0.15) +         # 15%
+                 (distance_factor * 0.15)) * 100  # 15%
+
         scores.append(np.clip(score, 0, 100))
 
-    # --- Step 3: Add results back to DataFrame ---
     df["Solar_Suitability_Score"] = scores
-
     return df
+
 
 
 if __name__ == "__main__":
     # Load existing CSV
-    df = pd.read_csv("backend/data/solar_results.csv")
+    df = pd.read_csv("backend/data/solar_with_grid.csv")
 
     # Compute solar suitability
     df = compute_solar_suitability(df)
