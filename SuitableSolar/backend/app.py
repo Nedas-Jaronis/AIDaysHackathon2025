@@ -71,6 +71,7 @@ def list_locations():
         where.append("annual_ghi >= :min_ghi")
         params["min_ghi"] = min_ghi
 
+    # Distance prefilter
     bbox_sql = ""
     if (lat is not None) and (lon is not None) and (max_km is not None):
         lat_min, lat_max, lon_min, lon_max = bbox(lat, lon, max_km * 1.2)
@@ -78,6 +79,25 @@ def list_locations():
         params.update({"lat_min": lat_min, "lat_max": lat_max, "lon_min": lon_min, "lon_max": lon_max})
 
     where_sql = ("WHERE " + " AND ".join(where)) if where else ""
+
+    # 1) Total row count (for pagination metadata)
+    count_sql = f"SELECT COUNT(*) FROM locations {where_sql} {bbox_sql}"
+    with db() as con:
+        total_rows = con.execute(count_sql, params).fetchone()[0]
+
+    total_pages = math.ceil(total_rows / limit) if total_rows > 0 else 1
+
+    # If page is out of range → return empty items (O1)
+    if page > total_pages:
+        return jsonify({
+            "page": page,
+            "limit": limit,
+            "total_rows": total_rows,
+            "total_pages": total_pages,
+            "items": []
+        })
+
+    # 2) Paged query
     sql = f"""
         SELECT id, address, latitude, longitude, annual_ghi, annual_tilt,
                grid_distance, solar_score, area, slope, solar_day_length
@@ -93,14 +113,20 @@ def list_locations():
 
     data = [dict(r) for r in rows]
 
-    # refine with precise Haversine and sort by distance if requested
+    # Final distance filter + sort
     if (lat is not None) and (lon is not None) and (max_km is not None):
-        for row in data:
-            row["distance_km"] = haversine_km(lat, lon, row["latitude"], row["longitude"])
+        for r in data:
+            r["distance_km"] = haversine_km(lat, lon, r["latitude"], r["longitude"])
         data = [r for r in data if r["distance_km"] <= max_km]
-        data.sort(key=lambda r: r["distance_km"])
+        data.sort(key=lambda x: x["distance_km"])
 
-    return jsonify({"page": page, "limit": limit, "count": len(data), "items": data})
+    return jsonify({
+        "page": page,
+        "limit": limit,
+        "total_rows": total_rows,
+        "total_pages": total_pages,
+        "items": data
+    })
 
 @app.get("/locations/<int:loc_id>")
 def get_location(loc_id):
