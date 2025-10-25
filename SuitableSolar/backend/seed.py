@@ -2,9 +2,11 @@
 import csv
 import sqlite3
 from pathlib import Path
+from dotenv import load_dotenv
+from CONSTANTS import *
 
-DB_PATH = Path(__file__).with_name("locations.db")
-CSV_FILE = Path(__file__).with_name("test.csv")
+DB_PATH = Path(__file__).with_name(DATABASE)
+CSV_FILE = Path(__file__).with_name(CSV_FILE)
 
 # Known columns (in table). Extra CSV columns are ignored gracefully.
 TABLE_COLS = [
