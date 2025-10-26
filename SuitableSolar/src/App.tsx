@@ -895,7 +895,7 @@ const getSuitabilityLabel = (score: number) => {
         <div className="action-buttons">
           {selectedProperty.forSale ? (
             <>
-              <button className="btn btn--primary btn--full-width">Request Site Visit</button>
+              {/* <button className="btn btn--primary btn--full-width">Request Site Visit</button> */}
             </>
           ) : (
             <>
