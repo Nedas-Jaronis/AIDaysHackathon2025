@@ -49,17 +49,21 @@
   --color-btn-primary-text: var(--color-cream-50);
   --color-card-border: rgba(var(--color-brown-600-rgb), 0.12);
   --color-card-border-inner: rgba(var(--color-brown-600-rgb), 0.12);
-  --color-error: var(--color-red-500);
-  --color-success: var(--color-teal-500);
-  --color-warning: var(--color-orange-500);
-  --color-info: var(--color-slate-500);
   --color-focus-ring: rgba(var(--color-teal-500-rgb), 0.4);
   --color-select-caret: rgba(var(--color-slate-900-rgb), 0.8);
 
-  --color-success-rgb: 33, 128, 141;
-  --color-error-rgb: 192, 21, 47;
-  --color-warning-rgb: 168, 75, 47;
-  --color-info-rgb: 98, 108, 113;
+
+  --color-success: #007B5F;
+  --color-warning: #F59E0B;
+  --color-info: #3B82F6;
+  --color-error: #EF4444;
+
+  --color-success-rgb: 0, 123, 95;
+  --color-warning-rgb: 245, 158, 11;
+  --color-info-rgb: 59, 130, 246;
+  --color-error-rgb: 239, 68, 68;
+
+
 
   /* Typography */
   --font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -135,10 +139,15 @@
     --color-card-border: rgba(var(--color-gray-400-rgb), 0.2);
     --color-card-border-inner: rgba(var(--color-gray-400-rgb), 0.15);
 
-    --color-success-rgb: var(--color-teal-300-rgb);
-    --color-error-rgb: var(--color-red-400-rgb);
-    --color-warning-rgb: var(--color-orange-400-rgb);
-    --color-info-rgb: var(--color-gray-300-rgb);
+    --color-success: #007B5F;
+    --color-warning: #F59E0B;
+    --color-info: #3B82F6;
+    --color-error: #EF4444;
+
+    --color-success-rgb: 0, 123, 95;
+    --color-warning-rgb: 245, 158, 11;
+    --color-info-rgb: 59, 130, 246;
+    --color-error-rgb: 239, 68, 68;
   }
 }
 
@@ -480,11 +489,29 @@ body {
   color: var(--color-primary);
 }
 
-/* Details Panel */
 .details-panel {
   position: sticky;
   top: 100px;
-  height: fit-content;
+  max-height: calc(100vh - 150px);  /* enough space, adjust as needed */
+  overflow-y: auto;
+  backdrop-filter: saturate(180%) blur(12px); /* modern glass effect */
+  padding: var(--space-20);
+  border-radius: var(--radius-lg);
+
+}
+
+/* Optional: Customize scrollbar for better transparency */
+.details-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.details-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.details-panel::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
 }
 
 .property-details {
@@ -1281,4 +1308,51 @@ body {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   line-height: 1.5;
+}
+
+.monthly-sunlight-details {
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-top: 16px;
+  border: none; /* remove border */
+  max-height: auto; /* no fixed height */
+  overflow-y: visible; /* remove scroll */
+  color: var(--color-text-primary);
+  font-family: inherit;
+  background-color: transparent;
+}
+
+.monthly-sunlight-details h4 {
+  margin-bottom: 12px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--color-primary);
+  border-bottom: 1px solid var(--color-gray-200);
+  padding-bottom: 6px;
+}
+
+.monthly-sunlight-details ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+}
+
+.monthly-sunlight-details li {
+  border: 1px solid white;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  text-align: center;
+  background-color: var(--color-bg-secondary);
+  color: white;
+}
+
+.monthly-sunlight-details li strong {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+  color: var(--color-primary-dark);
 }

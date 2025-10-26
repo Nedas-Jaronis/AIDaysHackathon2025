@@ -9,37 +9,50 @@ DDL = """
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS locations (
-  id               INTEGER PRIMARY KEY AUTOINCREMENT,
-  address          TEXT NOT NULL UNIQUE,
-  latitude         REAL NOT NULL,
-  longitude        REAL NOT NULL,
-  annual_ghi       REAL,
-  annual_tilt      REAL,
-  grid_distance    REAL,
-  solar_score      REAL,
-  area             REAL,
-  slope            REAL,
-  solar_day_length REAL,
-  created_at       TEXT DEFAULT (datetime('now')),
-  updated_at       TEXT DEFAULT (datetime('now')),
+  id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+  Address                 TEXT NOT NULL UNIQUE,
+  Latitude                REAL NOT NULL,
+  Longitude               REAL NOT NULL,
+  Annual_GHI              REAL,
+  Annual_DNI              REAL,
+  Annual_Tilt_Latitude    REAL,
+  GHI_jan                 REAL,
+  GHI_feb                 REAL,
+  GHI_mar                 REAL,
+  GHI_apr                 REAL,
+  GHI_may                 REAL,
+  GHI_jun                 REAL,
+  GHI_jul                 REAL,
+  GHI_aug                 REAL,
+  GHI_sep                 REAL,
+  GHI_oct                 REAL,
+  GHI_nov                 REAL,
+  GHI_dec                 REAL,
+  nearest_substation_km   REAL,
+  tilt_deg                REAL,
+  solar_score             REAL,
+  acres                   REAL,
+  price                   REAL,
+  created_at              TEXT DEFAULT (datetime('now')),
+  updated_at              TEXT DEFAULT (datetime('now')),
 
-  CHECK (latitude BETWEEN -90 AND 90),
-  CHECK (longitude BETWEEN -180 AND 180),
-  CHECK (annual_tilt IS NULL OR (annual_tilt BETWEEN 0 AND 90)),
-  CHECK (slope IS NULL OR (slope BETWEEN 0 AND 90)),
-  CHECK (solar_day_length IS NULL OR (solar_day_length BETWEEN 0 AND 24)),
-  CHECK (annual_ghi IS NULL OR annual_ghi >= 0),
-  CHECK (grid_distance IS NULL OR grid_distance >= 0),
-  CHECK (area IS NULL OR area >= 0),
-  CHECK (solar_score IS NULL OR solar_score >= 0)
+  CHECK (Latitude BETWEEN -90 AND 90),
+  CHECK (Longitude BETWEEN -180 AND 180),
+  CHECK (Annual_Tilt_Latitude IS NULL OR (Annual_Tilt_Latitude BETWEEN 0 AND 90)),
+  CHECK (tilt_deg IS NULL OR (tilt_deg BETWEEN 0 AND 90)),
+  CHECK (solar_score IS NULL OR solar_score >= 0),
+  CHECK (Annual_GHI IS NULL OR Annual_GHI >= 0),
+  CHECK (Annual_DNI IS NULL OR Annual_DNI >= 0),
+  CHECK (acres IS NULL OR acres >= 0),
+  CHECK (price IS NULL OR price >= 0)
 );
 
 -- simple indexes for common filters/sorts
-CREATE INDEX IF NOT EXISTS idx_locations_lat_lon      ON locations (latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_locations_lat_lon      ON locations (Latitude, Longitude);
 CREATE INDEX IF NOT EXISTS idx_locations_solar_score  ON locations (solar_score);
-CREATE INDEX IF NOT EXISTS idx_locations_annual_ghi   ON locations (annual_ghi);
-CREATE INDEX IF NOT EXISTS idx_locations_grid_distance ON locations (grid_distance);
-CREATE INDEX IF NOT EXISTS idx_locations_slope        ON locations (slope);
+CREATE INDEX IF NOT EXISTS idx_locations_Annual_GHI   ON locations (Annual_GHI);
+CREATE INDEX IF NOT EXISTS idx_locations_Annual_DNI   ON locations (Annual_DNI);
+CREATE INDEX IF NOT EXISTS idx_locations_tilt_deg     ON locations (tilt_deg);
 
 -- trigger to keep updated_at fresh
 CREATE TRIGGER IF NOT EXISTS trg_locations_touch
@@ -50,11 +63,13 @@ BEGIN
 END;
 """
 
+
 def main():
     DB_PATH.touch(exist_ok=True)
     with sqlite3.connect(DB_PATH) as con:
         con.executescript(DDL)
     print(f"✅ Schema ready at {DB_PATH}")
+
 
 if __name__ == "__main__":
     main()
