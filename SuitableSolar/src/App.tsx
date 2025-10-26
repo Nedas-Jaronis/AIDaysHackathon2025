@@ -132,9 +132,9 @@ useEffect(() => {
 
 
 const getSuitabilityColor = (score: number) => {
-  if (score >= 90) return 'var(--color-success)';
-  if (score >= 80) return 'var(--color-warning)';
-  if (score >= 70) return 'var(--color-info)';
+  if (score >= 80) return 'var(--color-success)';
+  if (score >= 65) return 'var(--color-warning)';
+  if (score >= 50) return 'var(--color-info)';
   return 'var(--color-error)';
 }
 
@@ -145,9 +145,9 @@ const getMarkerColor = getSuitabilityColor;
 
 
 const getSuitabilityLabel = (score: number) => {
-  if (score >= 90) return 'Excellent'
-  if (score >= 80) return 'Good'
-  if (score >= 70) return 'Fair'
+  if (score >= 80) return 'Excellent'
+  if (score >= 65) return 'Good'
+  if (score >= 50) return 'Fair'
   return 'Poor'
 }
 
@@ -539,12 +539,14 @@ const getSuitabilityLabel = (score: number) => {
                             <span>Slope Analysis</span>
                             <span
                               className={
-                                selectedProperty.slope && selectedProperty.slope <= 5
+                                selectedProperty.slope !== undefined && selectedProperty.slope !== null && selectedProperty.slope <= 5
                                   ? 'status status--success'
                                   : 'status status--warning'
                               }
                             >
-                              {selectedProperty.slope && selectedProperty.slope <= 5 ? 'Optimal' : 'Acceptable'}
+                              {selectedProperty.slope !== undefined && selectedProperty.slope !== null && selectedProperty.slope <= 5
+                                ? 'Optimal'
+                                : 'Acceptable'}
                             </span>
                           </div>
                           <div className="progress-bar">
@@ -553,9 +555,9 @@ const getSuitabilityLabel = (score: number) => {
                               style={{
                                 width: `${Math.max(0, 100 - (selectedProperty.slope ?? 0) * 10)}%`,
                                 backgroundColor:
-                                  selectedProperty.slope && selectedProperty.slope <= 5
-                                    ? 'var(--color-success)'
-                                    : 'var(--color-warning)',
+                                  selectedProperty.slope !== undefined && selectedProperty.slope !== null && selectedProperty.slope <= 5
+                                  ? 'status status--success'
+                                  : 'status status--warning'
                               }}
                             />
                           </div>
@@ -731,28 +733,28 @@ const getSuitabilityLabel = (score: number) => {
                   className="legend-color"
                   style={{ backgroundColor: 'var(--color-success)' }}
                 ></div>
-                <span>90-100: Excellent</span>
+                <span>80-100: Excellent</span>
                 </div>
                 <div className="legend-item">
                   <div
                     className="legend-color"
                     style={{ backgroundColor: 'var(--color-warning)' }}
                   ></div>
-                  <span>80-89: Good</span>
+                  <span>65-79: Good</span>
                 </div>
                 <div className="legend-item">
                   <div
                     className="legend-color"
                     style={{ backgroundColor: 'var(--color-info)' }}
                   ></div>
-                  <span>70-79: Fair</span>
+                  <span>50-64: Fair</span>
                 </div>
                 <div className="legend-item">
                   <div
                     className="legend-color"
                     style={{ backgroundColor: 'var(--color-error)' }}
                   ></div>
-                  <span>{'<70'}: Poor</span>
+                  <span>{'<50'}: Poor</span>
                 </div>
 
                 </div>
