@@ -56,13 +56,13 @@ def multi_year_forecast(initial_features_df, start_year, years_ahead, models, fe
 
 
 # --- Load saved models ---
-clf = joblib.load('backend/models/clf.joblib')
-reg_renew = joblib.load('backend/models/reg_renew.joblib')
-reg_nonrenew = joblib.load('backend/models/reg_nonrenew.joblib')
+clf = joblib.load('models/clf.joblib')
+reg_renew = joblib.load('models/reg_renew.joblib')
+reg_nonrenew = joblib.load('models/reg_nonrenew.joblib')
 models = {'clf': clf, 'reg_renew': reg_renew, 'reg_nonrenew': reg_nonrenew}
 
 # --- Load dataset ---
-df = pd.read_csv('backend/data/state_energy_summary.csv')
+df = pd.read_csv('data/state_energy_summary.csv')
 df = df.sort_values(['State', 'Year'])
 
 # --- Compute changes and lags ---

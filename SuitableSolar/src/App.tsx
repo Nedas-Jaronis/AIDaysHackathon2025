@@ -93,6 +93,10 @@ function App() {
   
   
   const fetchForecast = () => {
+      if (!forecastState || forecastState.length !== 2 || forecastYears <= 0) {
+      setForecastError("Please enter valid 2-letter state and positive years.");
+      return;
+    }
       setForecastLoading(true)
       setForecastError(null)
       setForecastData(null)
@@ -343,7 +347,9 @@ const getSuitabilityLabel = (score: number) => {
         />
       </label>
 
-      <button onClick={fetchForecast}>Get Forecast</button>
+      <button onClick={fetchForecast} disabled={forecastLoading}>
+        {forecastLoading ? 'Loading...' : 'Get Forecast'}
+      </button>
 
       {forecastLoading && <p>Loading forecast...</p>}
       {forecastError && <p style={{ color: 'red' }}>{forecastError}</p>}
