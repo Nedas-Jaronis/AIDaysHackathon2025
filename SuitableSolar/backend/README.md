@@ -9,5 +9,5 @@ csv_to_db.sh
 To run the server, run
 
 ```shell
-python app.py
+python server.py
 ```
