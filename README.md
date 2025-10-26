@@ -1,5 +1,9 @@
 # SolSearch
 
+<p align="center">
+  <img src="./SuitableSolar/src/assets/SolSearch%20Logo.png" alt="SolSearch Logo" width="60%">
+</p>
+
 SolSearch helps identify the best land for solar energy development. It analyzes terrain, sunlight, and grid proximity, then applies AI-powered predictions to highlight high-potential solar sites. Ideal for landowners, developers, and policymakers who want fast, data-driven insights for sustainable planning.
 
 ## Key Features
