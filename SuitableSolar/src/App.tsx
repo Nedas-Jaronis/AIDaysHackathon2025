@@ -35,7 +35,7 @@ export interface Property {
   ghi_dec?: number;
 }
 
-type ViewMode = 'for-sale' | 'opportunities' | 'map'
+type ViewMode = 'for-sale' | 'map' | 'forecast'
 
 
 function HeatmapLayer({ properties }: { properties: Property[] }) {
@@ -83,11 +83,36 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 5;
+  const [forecastState, setForecastState] = useState('CA')
+  const [forecastYears, setForecastYears] = useState(10)
+  const [forecastData, setForecastData] = useState<any | null>(null)
+  const [forecastLoading, setForecastLoading] = useState(false)
+  const [forecastError, setForecastError] = useState<string | null>(null)
   
+  const fetchForecast = () => {
+      setForecastLoading(true)
+      setForecastError(null)
+      setForecastData(null)
+      fetch(`http://localhost:8000/forecast?state=${forecastState}&years_ahead=${forecastYears}`)
+        .then(res => {
+          if (!res.ok) throw new Error(`Error: ${res.statusText}`)
+          return res.json()
+        })
+        .then(data => {
+          setForecastData(data)
+          setForecastLoading(false)
+        })
+        .catch(err => {
+          setForecastError(err.message)
+          setForecastLoading(false)
+        })
+    }
 
-
-
-
+      const handleForecastKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+          fetchForecast()
+        }
+      }
 
 useEffect(() => {
   fetch('http://localhost:8000/properties')
@@ -130,10 +155,6 @@ useEffect(() => {
 }, [])
 
 
-
-
-
-
 const getSuitabilityColor = (score: number) => {
   if (score >= 80) return 'var(--color-success)';
   if (score >= 65) return 'var(--color-warning)';
@@ -142,9 +163,6 @@ const getSuitabilityColor = (score: number) => {
 }
 
 const getMarkerColor = getSuitabilityColor;
-
-
-
 
 
 const getSuitabilityLabel = (score: number) => {
@@ -242,20 +260,6 @@ const getSuitabilityLabel = (score: number) => {
             </svg>
             For Sale
           </button>
-          {/* <button className={`tab-button ${viewMode === 'opportunities' ? 'active' : ''}`} onClick={() => setViewMode('opportunities')}>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 6v6l4 2" />
-            </svg>
-            Opportunities
-          </button> */}
           <button className={`tab-button ${viewMode === 'map' ? 'active' : ''}`} onClick={() => setViewMode('map')}>
             <svg
               width="18"
@@ -270,6 +274,24 @@ const getSuitabilityLabel = (score: number) => {
               <line x1="16" y1="6" x2="16" y2="22" />
             </svg>
             Map View
+          </button>
+          <button
+            className={`tab-button ${viewMode === 'forecast' ? 'active' : ''}`}
+            onClick={() => setViewMode('forecast')}
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="6" x2="12" y2="12" />
+              <line x1="12" y1="12" x2="16" y2="14" />
+            </svg>
+            Forecast
           </button>
         </div>
 
@@ -299,25 +321,72 @@ const getSuitabilityLabel = (score: number) => {
                   </select>
                 </div>
               )}
+                {viewMode === 'forecast' && (
+                  <div className="forecast-tab" style={{ padding: '1rem' }}>
+                    <h2>Renewable Energy Forecast</h2>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label>
+                        State Abbreviation:{' '}
+                        <input
+                          value={forecastState}
+                          onChange={e => setForecastState(e.target.value.toUpperCase())}
+                          onKeyDown={handleForecastKeyDown}
+                          maxLength={2}
+                          style={{ width: '3rem', textTransform: 'uppercase' }}
+                        />
+                      </label>
+                      <label style={{ marginLeft: '1rem' }}>
+                        Years Ahead:{' '}
+                        <input
+                          type="number"
+                          value={forecastYears}
+                          onChange={e => setForecastYears(Number(e.target.value))}
+                          onKeyDown={handleForecastKeyDown}
+                          min={1}
+                          max={50}
+                          style={{ width: '4rem' }}
+                        />
+                      </label>
+                      <button onClick={fetchForecast} style={{ marginLeft: '1rem' }}>
+                        Get Forecast
+                      </button>
+                    </div>
+
+                    {forecastLoading && <p>Loading forecast...</p>}
+                    {forecastError && <p style={{ color: 'red' }}>{forecastError}</p>}
+
+                    {forecastData && (
+                      <>
+                        <p>Current percent renewable: {forecastData.current_percent_renewable.toFixed(2)}%</p>
+                        <p>Predicted avg percent renewable over next {forecastYears} years: {forecastData.average_forecast_percent_renewable.toFixed(2)}%</p>
+                        <p>Predicted avg increase in renewable over next {forecastYears} years: {forecastData.predicted_increase.toFixed(2)}%</p>
+
+                        {/* Forecast heatmap placeholder */}
+                        <div
+                          style={{
+                            marginTop: '2rem',
+                            height: 400,
+                            background: '#eee',
+                            borderRadius: 8,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            color: '#777',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          Heatmap visualization coming soon...
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
             </div>
 
-            {viewMode === 'opportunities' && (
-              <div className="info-banner">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="16" x2="12" y2="12" />
-                  <line x1="12" y1="8" x2="12.01" y2="8" />
-                </svg>
-                <p>
-                  These properties are not currently for sale but have exceptional solar potential.
-                  Contact owners to explore acquisition opportunities.
-                </p>
-              </div>
-            )}
 
             <div className="content-grid">
               <div className="properties-list">
-                <h2 className="section-title">{viewMode === 'for-sale' ? 'Available Properties' : 'High-Potential Opportunities'}</h2>
+                <h2 className="section-title">{viewMode === 'for-sale'? 'Available Properties': viewMode === 'forecast'? 'Renewable Energy Forecast': ''}</h2>
                 <div className="property-cards">
                   {pagedProperties.map(property => (
                     <div
