@@ -33,6 +33,7 @@ export interface Property {
   ghi_oct?: number;
   ghi_nov?: number;
   ghi_dec?: number;
+  acrePrice: number;
 }
 
 type ViewMode = 'for-sale' | 'map' | 'forecast'
@@ -119,40 +120,49 @@ useEffect(() => {
   fetch('http://localhost:8000/properties')
     .then(res => res.json())
     .then((data: any[]) => {
-      const mapped = data.map(p => ({
-        id: p.id,
-        name: p.address,
-        location: p.address,
-        acres: p.acres ?? 0,
-        slope: p.tilt_deg !== undefined ? Number(p.tilt_deg.toFixed(2)) : 0,
-        sunIrradiation: p.annual_ghi !== undefined? Number(p.annual_ghi.toFixed(2)): 0,
-        gridDistance: p.nearest_substation_km !== undefined ? Number(p.nearest_substation_km.toFixed(2)) : 0,
-        suitabilityScore: Math.ceil(p.solar_score ?? 0),
-        price: p.price ? `$${Number(p.price).toLocaleString()}` : 'N/A',
-        forSale: p.for_sale ?? true,
-        estimatedValue: p.estimated_value ? `$${Number(p.estimated_value).toLocaleString()}` : undefined,
-        owner: p.owner,
-        coordinates: { lat: p.latitude, lng: p.longitude },
-        ghi_jan: p.ghi_jan !== undefined ? Number(p.ghi_jan.toFixed(2)) : undefined,
-        ghi_feb: p.ghi_feb !== undefined ? Number(p.ghi_feb.toFixed(2)) : undefined,
-        ghi_mar: p.ghi_mar !== undefined ? Number(p.ghi_mar.toFixed(2)) : undefined,
-        ghi_apr: p.ghi_apr !== undefined ? Number(p.ghi_apr.toFixed(2)) : undefined,
-        ghi_may: p.ghi_may !== undefined ? Number(p.ghi_may.toFixed(2)) : undefined,
-        ghi_jun: p.ghi_jun !== undefined ? Number(p.ghi_jun.toFixed(2)) : undefined,
-        ghi_jul: p.ghi_jul !== undefined ? Number(p.ghi_jul.toFixed(2)) : undefined,
-        ghi_aug: p.ghi_aug !== undefined ? Number(p.ghi_aug.toFixed(2)) : undefined,
-        ghi_sep: p.ghi_sep !== undefined ? Number(p.ghi_sep.toFixed(2)) : undefined,
-        ghi_oct: p.ghi_oct !== undefined ? Number(p.ghi_oct.toFixed(2)) : undefined,
-        ghi_nov: p.ghi_nov !== undefined ? Number(p.ghi_nov.toFixed(2)) : undefined,
-        ghi_dec: p.ghi_dec !== undefined ? Number(p.ghi_dec.toFixed(2)) : undefined,
-      }))
-      setProperties(mapped)
-      setLoading(false)
-    })
-    .catch(err => {
-      console.error('Error fetching properties:', err)
-      setLoading(false)
-    })
+      const mapped = data.map(p => {
+    // Safely parse price
+    const numericPrice = p.price ? Number(p.price.toString().replace(/[^0-9.-]+/g, '')) : 0;
+    const acres = p.acres ?? 0;
+
+    return {
+      id: p.id,
+      name: p.address,
+      location: p.address,
+      acres: acres,
+      slope: p.tilt_deg !== undefined ? Number(p.tilt_deg.toFixed(2)) : 0,
+      sunIrradiation: p.annual_ghi !== undefined ? Number(p.annual_ghi.toFixed(2)) : 0,
+      gridDistance: p.nearest_substation_km !== undefined ? Number(p.nearest_substation_km.toFixed(2)) : 0,
+      suitabilityScore: Math.ceil(p.solar_score ?? 0),
+      numericPrice: numericPrice,
+      price: p.price ? `$${numericPrice.toLocaleString()}` : 'N/A',
+      forSale: p.for_sale ?? true,
+      estimatedValue: p.estimated_value ? `$${Number(p.estimated_value.toString().replace(/[^0-9.-]+/g, '')).toLocaleString()}` : undefined,
+      owner: p.owner,
+      coordinates: { lat: p.latitude, lng: p.longitude },
+      ghi_jan: p.ghi_jan !== undefined ? Number(p.ghi_jan.toFixed(2)) : undefined,
+      ghi_feb: p.ghi_feb !== undefined ? Number(p.ghi_feb.toFixed(2)) : undefined,
+      ghi_mar: p.ghi_mar !== undefined ? Number(p.ghi_mar.toFixed(2)) : undefined,
+      ghi_apr: p.ghi_apr !== undefined ? Number(p.ghi_apr.toFixed(2)) : undefined,
+      ghi_may: p.ghi_may !== undefined ? Number(p.ghi_may.toFixed(2)) : undefined,
+      ghi_jun: p.ghi_jun !== undefined ? Number(p.ghi_jun.toFixed(2)) : undefined,
+      ghi_jul: p.ghi_jul !== undefined ? Number(p.ghi_jul.toFixed(2)) : undefined,
+      ghi_aug: p.ghi_aug !== undefined ? Number(p.ghi_aug.toFixed(2)) : undefined,
+      ghi_sep: p.ghi_sep !== undefined ? Number(p.ghi_sep.toFixed(2)) : undefined,
+      ghi_oct: p.ghi_oct !== undefined ? Number(p.ghi_oct.toFixed(2)) : undefined,
+      ghi_nov: p.ghi_nov !== undefined ? Number(p.ghi_nov.toFixed(2)) : undefined,
+      ghi_dec: p.ghi_dec !== undefined ? Number(p.ghi_dec.toFixed(2)) : undefined,
+      acrePrice: acres > 0 ? Number((numericPrice / acres).toFixed(2)) : 0,
+    }
+  });
+
+  setProperties(mapped);
+  setLoading(false);
+})
+.catch(err => {
+  console.error('Error fetching properties:', err)
+  setLoading(false)
+});
 }, [])
 
 
@@ -382,7 +392,7 @@ const getSuitabilityLabel = (score: number) => {
                   <label className="form-label">Sort by:</label>
                   <select className="form-control" value={sortBy} onChange={e => setSortBy(e.target.value as any)}>
                     <option value="score">Suitability Score</option>
-                    <option value="acres">Land Size</option>
+                    <option value="acrePrice">Price/Acre</option>
                     <option value="price">Price</option>
                   </select>
                 </div>
@@ -729,27 +739,33 @@ const getSuitabilityLabel = (score: number) => {
 
                         <div className="criteria-item">
                           <div className="criteria-header">
-                            <span>Land Size</span>
+                            <span>Price/Acre</span>
                             <span
                               className={
-                                selectedProperty.acres !== undefined && selectedProperty.acres >= 50
+                                selectedProperty.acrePrice !== undefined && selectedProperty.acrePrice <= 1500
                                   ? 'status status--success'
                                   : 'status status--warning'
                               }
                             >
-                              {selectedProperty.acres !== undefined && selectedProperty.acres >= 50 ? 'Large-scale ready' : 'Community-scale'}
+                              {selectedProperty.acrePrice !== undefined && selectedProperty.acrePrice <= 1500 ? 'Excellent' : 'Not Great'}
                             </span>
                           </div>
                           <div className="progress-bar">
                             <div
                               className="progress-fill"
                               style={{
-                                width: `${Math.min(100, ((selectedProperty.acres ?? 0) / 200) * 100)}%`,
-                                backgroundColor: 'var(--color-primary)', // Primary color for land size
+                                width: `${Math.max(
+                                    0,
+                                    Math.min(100, ((3000 - (selectedProperty.acrePrice ?? 0)) / 2500) * 100)
+                                  )}%`,
+                                backgroundColor:
+                                  selectedProperty.acrePrice !== undefined && selectedProperty.acrePrice <= 1500
+                                    ? 'var(--color-success)'  // green if under 1500
+                                    : 'var(--color-warning)', // yellow if over 1500
                               }}
                             />
                           </div>
-                          <p className="criteria-note">{selectedProperty.acres} acres (min. 50 for commercial)</p>
+                          <p className="criteria-note">${selectedProperty.acrePrice}/Acre </p>
                         </div>
                       </div>
 
