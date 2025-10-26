@@ -1357,6 +1357,17 @@ body {
   color: var(--color-primary-dark);
 }
 
+.assump-field { margin-bottom: 16px; }
+.assump-label { display: block; font-weight: 600; margin-bottom: 8px; }
+.assump-input-row { display: flex; gap: 12px; align-items: center; }
+.assump-slider { flex: 1; }
+.assump-value { display: flex; align-items: center; gap: 6px; }
+.assump-value input[type="number"] {
+  width: 120px; padding: 8px; border: 1px solid #ddd; border-radius: 8px;
+}
+.assump-suffix { font-size: 12px; color: #666; }
+.assump-minmax { display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-top: 4px; }
+
 /* Forecast View */
 .forecast-view {
   display: grid;
