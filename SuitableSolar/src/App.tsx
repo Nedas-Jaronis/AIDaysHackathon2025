@@ -450,24 +450,30 @@ const getSuitabilityLabel = (score: number) => {
                     </div>
                   ))}
                 </div>
-                              {viewMode === 'for-sale' && maxPage > 1 && (
-                <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+                {viewMode === 'for-sale' && maxPage > 1 && (
+                <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '1rem', alignItems: 'center' }}>
                   <button
                     className="btn btn--primary btn--sm"
-                    onClick={() => setPage(page => Math.max(page - 1, 1))}
+                    onClick={() => setPage(p => Math.max(p - 1, 1))}
                     disabled={page === 1}
                   >
                     Previous
                   </button>
+
+                  <span style={{ fontWeight: 'bold' }}>
+                    Page {page} of {maxPage}
+                  </span>
+
                   <button
                     className="btn btn--primary btn--sm"
-                    onClick={() => setPage(page => Math.min(page + 1, maxPage))}
+                    onClick={() => setPage(p => Math.min(p + 1, maxPage))}
                     disabled={page === maxPage}
                   >
                     Next
                   </button>
                 </div>
               )}
+
               </div>
 
               <div className="details-panel">
