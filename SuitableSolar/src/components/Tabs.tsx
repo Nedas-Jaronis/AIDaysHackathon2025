@@ -14,6 +14,7 @@ export default function Tabs() {
         For Sale
       </NavLink>
 
+      {/*
       <NavLink
         to="opportunities"
         className={({ isActive }) => `tab-button ${isActive ? "active" : ""}`}
@@ -24,6 +25,7 @@ export default function Tabs() {
         </svg>
         Opportunities
       </NavLink>
+      */}
 
       <NavLink
         to="map"
