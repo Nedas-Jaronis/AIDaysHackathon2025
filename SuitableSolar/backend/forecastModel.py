@@ -1,7 +1,7 @@
 import pandas as pd
 import joblib
 
-# --- Import your multi_year_forecast function directly ---
+
 def multi_year_forecast(initial_features_df, start_year, years_ahead, models, feature_cols, lags=3):
     clf = models['clf']
     reg_renew = models['reg_renew']
@@ -35,9 +35,11 @@ def multi_year_forecast(initial_features_df, start_year, years_ahead, models, fe
             elif col == 'TotalEnergy':
                 next_row.append(history['TotalEnergy'].iloc[0])
             elif col == 'Renewable_change':
-                next_row.append(pred_renew - history['PercentRenewable'].iloc[0])
+                next_row.append(
+                    pred_renew - history['PercentRenewable'].iloc[0])
             elif col == 'NonRenewable_change':
-                next_row.append(pred_nonrenew - history['PercentNonRenewable'].iloc[0])
+                next_row.append(
+                    pred_nonrenew - history['PercentNonRenewable'].iloc[0])
             elif col.endswith('lag1'):
                 base_col = col.replace('_lag1', '')
                 next_row.append(history[base_col].iloc[0])
@@ -51,6 +53,7 @@ def multi_year_forecast(initial_features_df, start_year, years_ahead, models, fe
         history = pd.DataFrame([next_row], columns=feature_cols)
 
     return pd.DataFrame(forecast_results)
+
 
 # --- Load saved models ---
 clf = joblib.load('backend/models/clf.joblib')
@@ -68,10 +71,14 @@ df['NonRenewable_change'] = df.groupby('State')['PercentNonRenewable'].diff()
 
 lags = 3
 for lag in range(1, lags+1):
-    df[f'PercentRenewable_lag{lag}'] = df.groupby('State')['PercentRenewable'].shift(lag)
-    df[f'PercentNonRenewable_lag{lag}'] = df.groupby('State')['PercentNonRenewable'].shift(lag)
-    df[f'Renewable_change_lag{lag}'] = df.groupby('State')['Renewable_change'].shift(lag)
-    df[f'NonRenewable_change_lag{lag}'] = df.groupby('State')['NonRenewable_change'].shift(lag)
+    df[f'PercentRenewable_lag{lag}'] = df.groupby(
+        'State')['PercentRenewable'].shift(lag)
+    df[f'PercentNonRenewable_lag{lag}'] = df.groupby(
+        'State')['PercentNonRenewable'].shift(lag)
+    df[f'Renewable_change_lag{lag}'] = df.groupby(
+        'State')['Renewable_change'].shift(lag)
+    df[f'NonRenewable_change_lag{lag}'] = df.groupby(
+        'State')['NonRenewable_change'].shift(lag)
 
 # --- Define feature columns ---
 feature_cols = [
@@ -105,8 +112,12 @@ forecast_df = multi_year_forecast(
 
 # --- Compute predicted averages ---
 avg_percent_renewable = forecast_df['Pred_PercentRenewable'].mean()
-predicted_increase = avg_percent_renewable - initial_features_df['PercentRenewable'].iloc[0]
+predicted_increase = avg_percent_renewable - \
+    initial_features_df['PercentRenewable'].iloc[0]
 
-print(f"\nCurrent percent renewable: {initial_features_df['PercentRenewable'].iloc[0]:.2f}%")
-print(f"Predicted average percent renewable over next {years_ahead} years: {avg_percent_renewable:.2f}%")
-print(f"Predicted average increase in renewable over next {years_ahead} years: {predicted_increase:.2f}%")
+print(
+    f"\nCurrent percent renewable: {initial_features_df['PercentRenewable'].iloc[0]:.2f}%")
+print(
+    f"Predicted average percent renewable over next {years_ahead} years: {avg_percent_renewable:.2f}%")
+print(
+    f"Predicted average increase in renewable over next {years_ahead} years: {predicted_increase:.2f}%")

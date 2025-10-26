@@ -12,16 +12,24 @@ df['NonRenewable_change'] = df.groupby('State')['PercentNonRenewable'].diff()
 
 lags = 3
 for lag in range(1, lags+1):
-    df[f'PercentRenewable_lag{lag}'] = df.groupby('State')['PercentRenewable'].shift(lag)
-    df[f'PercentNonRenewable_lag{lag}'] = df.groupby('State')['PercentNonRenewable'].shift(lag)
-    df[f'Renewable_change_lag{lag}'] = df.groupby('State')['Renewable_change'].shift(lag)
-    df[f'NonRenewable_change_lag{lag}'] = df.groupby('State')['NonRenewable_change'].shift(lag)
+    df[f'PercentRenewable_lag{lag}'] = df.groupby(
+        'State')['PercentRenewable'].shift(lag)
+    df[f'PercentNonRenewable_lag{lag}'] = df.groupby(
+        'State')['PercentNonRenewable'].shift(lag)
+    df[f'Renewable_change_lag{lag}'] = df.groupby(
+        'State')['Renewable_change'].shift(lag)
+    df[f'NonRenewable_change_lag{lag}'] = df.groupby(
+        'State')['NonRenewable_change'].shift(lag)
 
-df['IncreaseRenewable'] = (df['Renewable_change'] > df['NonRenewable_change']).astype(int)
+df['IncreaseRenewable'] = (df['Renewable_change'] >
+                           df['NonRenewable_change']).astype(int)
 forecast_horizon = 1
-df['IncreaseRenewable_future'] = df.groupby('State')['IncreaseRenewable'].shift(-forecast_horizon)
-df['PercentRenewable_future'] = df.groupby('State')['PercentRenewable'].shift(-forecast_horizon)
-df['PercentNonRenewable_future'] = df.groupby('State')['PercentNonRenewable'].shift(-forecast_horizon)
+df['IncreaseRenewable_future'] = df.groupby(
+    'State')['IncreaseRenewable'].shift(-forecast_horizon)
+df['PercentRenewable_future'] = df.groupby(
+    'State')['PercentRenewable'].shift(-forecast_horizon)
+df['PercentNonRenewable_future'] = df.groupby(
+    'State')['PercentNonRenewable'].shift(-forecast_horizon)
 
 # Feature columns
 feature_cols = [
@@ -33,7 +41,8 @@ feature_cols = [
     [f'NonRenewable_change_lag{i}' for i in range(1, lags+1)]
 
 # Drop rows with missing values
-df_model = df.dropna(subset=['IncreaseRenewable_future', 'PercentRenewable_future', 'PercentNonRenewable_future'] + feature_cols)
+df_model = df.dropna(subset=['IncreaseRenewable_future',
+                     'PercentRenewable_future', 'PercentNonRenewable_future'] + feature_cols)
 
 X = df_model[feature_cols]
 y_class = df_model['IncreaseRenewable_future']
@@ -52,10 +61,12 @@ y_reg_nonrenew_train = y_reg_nonrenew.loc[train_mask]
 clf = RandomForestClassifier(n_estimators=200, max_depth=15, random_state=42)
 clf.fit(X_train, y_class_train)
 
-reg_renew = RandomForestRegressor(n_estimators=200, max_depth=15, random_state=42)
+reg_renew = RandomForestRegressor(
+    n_estimators=200, max_depth=15, random_state=42)
 reg_renew.fit(X_train, y_reg_renew_train)
 
-reg_nonrenew = RandomForestRegressor(n_estimators=200, max_depth=15, random_state=42)
+reg_nonrenew = RandomForestRegressor(
+    n_estimators=200, max_depth=15, random_state=42)
 reg_nonrenew.fit(X_train, y_reg_nonrenew_train)
 
 # Save models
