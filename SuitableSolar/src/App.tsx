@@ -417,7 +417,7 @@ const getSuitabilityLabel = (score: number) => {
                             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                           </svg>
                           <span className="metric-label">Grid</span>
-                          <span className="metric-value">{property.gridDistance}mi</span>
+                          <span className="metric-value">{property.gridDistance}km</span>
                         </div>
                       </div>
 
