@@ -8,7 +8,7 @@ from tqdm import tqdm
 API_KEY = "vR8le25b3vHo6kMP4nsv8HxkFbvDPRkuyQLl5X8n"
 
 # Input / Output paths
-INPUT_FILE = "backend/data/addresses_geocoded.csv"
+INPUT_FILE = "backend/data/newdata.csv"
 OUTPUT_FILE = "backend/data/solar_results.csv"
 
 # Base URL for NREL Solar Resource API
@@ -48,13 +48,18 @@ for _, row in tqdm(df.iterrows(), total=len(df)):
         ghi_annual = dni_annual = tilt_annual = None
         ghi_monthly = {}
 
-        if response.status_code == 200 and "outputs" in data:
+        if response.status_code == 200 and "outputs" in data and isinstance(data["outputs"], dict):
             outputs = data["outputs"]
 
-            ghi_annual = outputs["avg_ghi"]["annual"]
-            dni_annual = outputs["avg_dni"]["annual"]
-            tilt_annual = outputs["avg_lat_tilt"]["annual"]
-            ghi_monthly = outputs["avg_ghi"]["monthly"]
+            if all(k in outputs for k in ("avg_ghi", "avg_dni", "avg_lat_tilt")):
+                ghi_annual = outputs["avg_ghi"].get("annual", None) if isinstance(
+                    outputs["avg_ghi"], dict) else None
+                dni_annual = outputs["avg_dni"].get("annual", None) if isinstance(
+                    outputs["avg_dni"], dict) else None
+                tilt_annual = outputs["avg_lat_tilt"].get("annual", None) if isinstance(
+                    outputs["avg_lat_tilt"], dict) else None
+                ghi_monthly = outputs["avg_ghi"].get(
+                    "monthly", {}) if isinstance(outputs["avg_ghi"], dict) else {}
 
         # Store result
         results.append({
