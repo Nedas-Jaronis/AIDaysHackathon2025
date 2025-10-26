@@ -21,6 +21,18 @@ export interface Property {
   zoning?: string
   forSale: boolean
   owner?: string
+  ghi_jan?: number;
+  ghi_feb?: number;
+  ghi_mar?: number;
+  ghi_apr?: number;
+  ghi_may?: number;
+  ghi_jun?: number;
+  ghi_jul?: number;
+  ghi_aug?: number;
+  ghi_sep?: number;
+  ghi_oct?: number;
+  ghi_nov?: number;
+  ghi_dec?: number;
 }
 
 type ViewMode = 'for-sale' | 'opportunities' | 'map'
@@ -67,6 +79,8 @@ function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('for-sale')
   const [hoveredProperty, setHoveredProperty] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showMonthlySunlight, setShowMonthlySunlight] = useState(false);
+
 
 useEffect(() => {
   fetch('http://localhost:8000/properties')
@@ -74,20 +88,30 @@ useEffect(() => {
     .then((data: any[]) => {
       const mapped = data.map(p => ({
         id: p.id,
-        name: p.address,                // Use address as name
-        location: p.address,            // You can keep location same or map differently
+        name: p.address,
+        location: p.address,
         acres: p.acres ?? 0,
-        slope: p.slope ?? 0,            // If no slope from backend, default 0
-        sunlightHours: 0,               // Keep as 0 since no data
-        gridDistance: p.grid_distance ?? 0,   // Default 0 if missing
+        slope: p.tilt_deg !== undefined ? Number(p.tilt_deg.toFixed(2)) : 0,
+        sunlightHours: p.annual_ghi !== undefined? Number(p.annual_ghi.toFixed(2)): 0,
+        gridDistance: p.nearest_substation_km !== undefined ? Number(p.nearest_substation_km.toFixed(2)) : 0,
         suitabilityScore: Math.ceil(p.solar_score ?? 0),
         price: p.price ? `$${Number(p.price).toLocaleString()}` : 'N/A',
-        forSale: p.for_sale ?? true,    // Adjust if you have a for_sale field
+        forSale: p.for_sale ?? true,
         estimatedValue: p.estimated_value ? `$${Number(p.estimated_value).toLocaleString()}` : undefined,
         owner: p.owner,
         coordinates: { lat: p.latitude, lng: p.longitude },
-        terrain: p.terrain,
-        zoning: p.zoning,
+        ghi_jan: p.ghi_jan !== undefined ? Number(p.ghi_jan.toFixed(2)) : undefined,
+        ghi_feb: p.ghi_feb !== undefined ? Number(p.ghi_feb.toFixed(2)) : undefined,
+        ghi_mar: p.ghi_mar !== undefined ? Number(p.ghi_mar.toFixed(2)) : undefined,
+        ghi_apr: p.ghi_apr !== undefined ? Number(p.ghi_apr.toFixed(2)) : undefined,
+        ghi_may: p.ghi_may !== undefined ? Number(p.ghi_may.toFixed(2)) : undefined,
+        ghi_jun: p.ghi_jun !== undefined ? Number(p.ghi_jun.toFixed(2)) : undefined,
+        ghi_jul: p.ghi_jul !== undefined ? Number(p.ghi_jul.toFixed(2)) : undefined,
+        ghi_aug: p.ghi_aug !== undefined ? Number(p.ghi_aug.toFixed(2)) : undefined,
+        ghi_sep: p.ghi_sep !== undefined ? Number(p.ghi_sep.toFixed(2)) : undefined,
+        ghi_oct: p.ghi_oct !== undefined ? Number(p.ghi_oct.toFixed(2)) : undefined,
+        ghi_nov: p.ghi_nov !== undefined ? Number(p.ghi_nov.toFixed(2)) : undefined,
+        ghi_dec: p.ghi_dec !== undefined ? Number(p.ghi_dec.toFixed(2)) : undefined,
       }))
       setProperties(mapped)
       setLoading(false)
@@ -97,6 +121,8 @@ useEffect(() => {
       setLoading(false)
     })
 }, [])
+
+
 
 
 
@@ -427,14 +453,6 @@ const getSuitabilityLabel = (score: number) => {
                         </span>
                       </div>
                       <div className="detail-row">
-                        <span className="detail-label">Terrain Type</span>
-                        <span className="detail-value">{selectedProperty.terrain}</span>
-                      </div>
-                      <div className="detail-row">
-                        <span className="detail-label">Zoning</span>
-                        <span className="detail-value">{selectedProperty.zoning}</span>
-                      </div>
-                      <div className="detail-row">
                         <span className="detail-label">Total Acreage</span>
                         <span className="detail-value">{selectedProperty.acres} acres</span>
                       </div>
@@ -452,6 +470,38 @@ const getSuitabilityLabel = (score: number) => {
                           {selectedProperty.forSale ? selectedProperty.price : selectedProperty.estimatedValue}
                         </span>
                       </div>
+                      <button
+                        className="btn btn--outline btn--sm"
+                        onClick={() => setShowMonthlySunlight(!showMonthlySunlight)}
+                      >
+                        {showMonthlySunlight ? 'Hide' : 'Show'} Monthly Sunlight Hours
+                      </button>
+
+                      {showMonthlySunlight && (
+                        <div className="monthly-sunlight-details">
+                          <h4>Average Monthly Sunlight (kWh/m²/day)</h4>
+                          <ul>
+                            {selectedProperty && Object.entries({
+                              Jan: selectedProperty.ghi_jan,
+                              Feb: selectedProperty.ghi_feb,
+                              Mar: selectedProperty.ghi_mar,
+                              Apr: selectedProperty.ghi_apr,
+                              May: selectedProperty.ghi_may,
+                              Jun: selectedProperty.ghi_jun,
+                              Jul: selectedProperty.ghi_jul,
+                              Aug: selectedProperty.ghi_aug,
+                              Sep: selectedProperty.ghi_sep,
+                              Oct: selectedProperty.ghi_oct,
+                              Nov: selectedProperty.ghi_nov,
+                              Dec: selectedProperty.ghi_dec,
+                            }).map(([month, value]) => (
+                              <li key={month}>
+                                <strong>{month}:</strong> {value !== undefined ? value.toFixed(2) : 'N/A'}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
 
                     <div className="detail-card">
@@ -578,7 +628,6 @@ const getSuitabilityLabel = (score: number) => {
                         {selectedProperty.forSale ? (
                           <>
                             <button className="btn btn--primary btn--full-width">Request Site Visit</button>
-                            <button className="btn btn--outline btn--full-width">Download Report</button>
                           </>
                         ) : (
                           <>

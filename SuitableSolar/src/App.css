@@ -139,10 +139,10 @@
     --color-card-border: rgba(var(--color-gray-400-rgb), 0.2);
     --color-card-border-inner: rgba(var(--color-gray-400-rgb), 0.15);
 
-    --color-success: #07a0f8;
-    --color-warning: #3d21b9;
-    --color-info: #b65506;
-    --color-error: #ff0000;
+    --color-success: #007B5F;
+    --color-warning: #F59E0B;
+    --color-info: #3B82F6;
+    --color-error: #EF4444;
 
     --color-success-rgb: 0, 123, 95;
     --color-warning-rgb: 245, 158, 11;
@@ -489,11 +489,29 @@ body {
   color: var(--color-primary);
 }
 
-/* Details Panel */
 .details-panel {
   position: sticky;
   top: 100px;
-  height: fit-content;
+  max-height: calc(100vh - 150px);  /* enough space, adjust as needed */
+  overflow-y: auto;
+  backdrop-filter: saturate(180%) blur(12px); /* modern glass effect */
+  padding: var(--space-20);
+  border-radius: var(--radius-lg);
+
+}
+
+/* Optional: Customize scrollbar for better transparency */
+.details-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.details-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.details-panel::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
 }
 
 .property-details {
