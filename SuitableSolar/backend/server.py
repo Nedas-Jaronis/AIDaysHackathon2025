@@ -8,13 +8,17 @@ import joblib
 from forecastModel import multi_year_forecast
 import pandas as pd
 import os
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.exception_handlers import RequestValidationError
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import NearestNeighbors
 import numpy as np
+from forecast_chart import create_forecast_figure
+import matplotlib.pyplot as plt
+import io
+
 
 DB_PATH = Path(__file__).parent / "locations.db"
 
@@ -307,3 +311,14 @@ def get_similar_properties(property_id: int, k: int = 3):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/forecast_chart")
+async def forecast_chart(state: str, years_ahead: int):
+    fig = create_forecast_figure(state, years_ahead)
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return StreamingResponse(buf, media_type="image/png")

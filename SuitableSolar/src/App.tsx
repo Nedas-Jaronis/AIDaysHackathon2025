@@ -6,7 +6,6 @@ import 'leaflet.heat'
 import './App.css'
 import React from 'react';
 import ForecastHeatmaps from './components/heatMap'
-
 export interface Property {
   id: number
   name?: string
@@ -95,12 +94,36 @@ function App() {
   const [similarProperties, setSimilarProperties] = useState<Property[]>([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const propertyDetailsRef = React.useRef<HTMLDivElement>(null);
+  const [chartUrl, setChartUrl] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
+
+
+
+
+  
+  const fetchForecastChart = () => {
+    setChartUrl(null);
+    fetch(`http://localhost:8000/forecast_chart?state=${encodeURIComponent(forecastState)}&years_ahead=${encodeURIComponent(forecastYearsAhead ?? '')}`)
+      .then(res => {
+        if (!res.ok) return res.text().then(text => Promise.reject(new Error(text.substring(0, 100))));
+        return res.blob();
+      })
+      .then(blob => {
+        setChartUrl(URL.createObjectURL(blob));
+      })
+      .catch(err => {
+        setForecastError(`Error fetching chart: ${err.message}`);
+      });
+  };
+
 
 
   
   
-const fetchForecast = () => {
-      if (!forecastState || forecastState.length !== 2) {
+  const fetchForecast = () => {
+    if (!forecastState || forecastState.length !== 2) {
       setForecastError("Please enter a valid 2-letter state abbreviation.");
       return;
     }
@@ -108,34 +131,40 @@ const fetchForecast = () => {
       setForecastError("Please enter years ahead between 1 and 100.");
       return;
     }
-      setForecastLoading(true)
-      setForecastError(null)
-      setForecastData(null)
-      fetch(`http://localhost:8000/forecast?state=${forecastState}&years_ahead=${forecastYearsAhead}`)
-        .then(res => {
-          if (!res.ok) {
-            return res.text().then(text => {
-              throw new Error(`Server error: ${res.status} - ${text.substring(0, 100)}`)
-            })
-          }
-          return res.json()
-        })
-        .then(data => {
-          setForecastData(data)
-          setForecastLoading(false)
-        })
-        .catch(err => {
-          console.error('Forecast fetch error:', err)
-          setForecastError(`Failed to fetch forecast: ${err.message}. Make sure the backend server is running on port 8000.`)
-          setForecastLoading(false)
-        })
-    }
+    setForecastLoading(true);
+    setForecastError(null);
+    setForecastData(null);
+    setChartUrl(null);  // clear previous chart
 
-      const handleForecastKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-          fetchForecast()
+    // Fetch forecast summary data
+    fetch(`http://localhost:8000/forecast?state=${encodeURIComponent(forecastState)}&years_ahead=${encodeURIComponent(forecastYearsAhead)}`)
+      .then(res => {
+        if (!res.ok) {
+          return res.text().then(text => Promise.reject(new Error(text.substring(0, 100))));
         }
-      }
+        return res.json();
+      })
+      .then(data => {
+        setForecastData(data);
+
+        // After summary, fetch the chart image
+        return fetch(`http://localhost:8000/forecast_chart?state=${encodeURIComponent(forecastState)}&years_ahead=${encodeURIComponent(forecastYearsAhead)}`);
+      })
+      .then(res => {
+        if (!res.ok) {
+          return res.text().then(text => Promise.reject(new Error(text.substring(0, 100))));
+        }
+        return res.blob();
+      })
+      .then(blob => {
+        setChartUrl(URL.createObjectURL(blob));
+        setForecastLoading(false);
+      })
+      .catch(err => {
+        setForecastError(`Failed to fetch forecast or chart: ${err.message}. Make sure the backend server is running on port 8000.`);
+        setForecastLoading(false);
+      });
+  };
 
 useEffect(() => {
   fetch('http://localhost:8000/properties')
@@ -367,19 +396,18 @@ const getSuitabilityLabel = (score: number) => {
         
 
        {viewMode === 'forecast' && (
-<div className="forecast-view">
-  <div className="forecast-map">
-    <ForecastHeatmaps selectedYear={displayYear} />
-  </div>
+  <div className="forecast-view">
+    <div className="forecast-map">
+      <ForecastHeatmaps selectedYear={displayYear} />
+    </div>
     <div className="forecast-sidebar" style={{ width: 350, padding: 20 }}>
-      <h2>Renewable Energy Forecast</h2>
+      {/* Existing inputs and buttons */}
       <label style={{ display: 'block', marginBottom: '1rem' }}>
         State Abbreviation:
         <input
           type="text"
           value={forecastState}
           onChange={e => setForecastState(e.target.value.toUpperCase())}
-          onKeyDown={handleForecastKeyDown}
           maxLength={2}
           placeholder=""
           style={{ display: 'block', marginTop: '0.25rem', width: '100%' }}
@@ -392,7 +420,6 @@ const getSuitabilityLabel = (score: number) => {
           type="number"
           value={forecastYearsAhead}
           onChange={e => setForecastYearsAhead(Number(e.target.value))}
-          onKeyDown={handleForecastKeyDown}
           min={1}
           max={100}
           placeholder=""
@@ -400,7 +427,7 @@ const getSuitabilityLabel = (score: number) => {
         />
       </label>
 
-      <button onClick={fetchForecast} disabled={forecastLoading}>
+      <button onClick={fetchForecast} disabled={forecastLoading} style={{ width: '100%' }}>
         {forecastLoading ? 'Loading...' : 'Get Forecast'}
       </button>
 
@@ -412,11 +439,50 @@ const getSuitabilityLabel = (score: number) => {
           <p>Current percent renewable: {forecastData.current_percent_renewable.toFixed(2)}%</p>
           <p>Predicted average percent renewable over the next {forecastYearsAhead} years: {forecastData.average_forecast_percent_renewable.toFixed(2)}%</p>
           <p>Predicted average increase in renewable energy over the next {forecastYearsAhead} years: {forecastData.predicted_increase.toFixed(2)}%</p>
+
+          {/* Chart image after the text */}
+          {chartUrl && (
+            <div style={{ marginTop: '1rem', cursor: 'pointer' }} onClick={() => setIsModalOpen(true)}>
+              <img
+                src={chartUrl || undefined}
+                alt="Renewable energy prediction mapping chart"
+                style={{ width: '100%', borderRadius: 8, boxShadow: '0 0 8px rgba(0,0,0,0.1)' }}
+              />
+              <small style={{ display: 'block', textAlign: 'center', cursor: 'pointer' }}>
+                Prediction Line Chart | Click to enlarge
+              </small>
+            </div>
+          )}
         </>
+      )}
+
+      {/* Modal overlay for enlarged image */}
+      {isModalOpen && chartUrl && (
+        <div
+          onClick={() => setIsModalOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            cursor: 'zoom-out',
+          }}
+        >
+          <img
+            src={chartUrl}
+            alt="Enlarged renewable energy prediction mapping chart"
+            style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8 }}
+          />
+        </div>
       )}
     </div>
   </div>
 )}
+
+
 
 
 
