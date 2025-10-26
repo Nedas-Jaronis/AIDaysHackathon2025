@@ -1,5 +1,3 @@
-// Draggable slider for numerical range
-
 type Props = {
   label: string;
   min: number;
@@ -42,13 +40,14 @@ export default function SliderField({
         </div>
       </div>
       <div className="assump-minmax">
-        <span>{format(min, suffix)}</span>
-        <span>{format(max, suffix)}</span>
+        <span>{fmt(min, suffix)}</span>
+        <span>{fmt(max, suffix)}</span>
       </div>
     </div>
   );
 }
 
-function format(n: number, suffix?: string) {
-  return `${Number.isInteger(n) ? n : n.toFixed(3).replace(/0+$/,'').replace(/\.$/,'')}${suffix ?? ""}`;
+function fmt(n: number, suffix?: string) {
+  const s = Number.isInteger(n) ? n.toString() : n.toFixed(3).replace(/0+$/,"").replace(/\.$/,"");
+  return `${s}${suffix ?? ""}`;
 }

@@ -4,6 +4,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.heat'
 import './App.css'
+import { PropertyDetails } from './components/PropertyDetails'
 
 export interface Property {
   id: number
@@ -761,9 +762,8 @@ const getSuitabilityLabel = (score: number) => {
                       </div>
                     </div>
 
-                    <div className="detail-card">
-                      <h4>Profit Analysis</h4>
-                    </div>
+                    <PropertyDetails property={selectedProperty} />
+
                   </div>
                 ) : (
                   <div className="empty-state">
