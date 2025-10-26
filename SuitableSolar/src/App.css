@@ -1356,3 +1356,131 @@ body {
   font-weight: 600;
   color: var(--color-primary-dark);
 }
+
+/* Forecast View */
+.forecast-view {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: var(--space-24);
+  height: calc(100vh - 250px);
+  min-height: 600px;
+  background: var(--color-background, #fafafa);
+  box-sizing: border-box;
+}
+
+/* Forecast Map Container */
+.forecast-map {
+  background: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+
+.forecast-map svg,
+.forecast-map > div {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.forecast-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-20);
+  overflow-y: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-20);
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Titles and headings */
+.forecast-sidebar h2 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-8);
+  color: var(--color-text);
+}
+
+/* Labels and descriptions */
+.forecast-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-8);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Input fields */
+.forecast-sidebar input[type="text"],
+.forecast-sidebar input[type="number"] {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.2s ease;
+  cursor: text;
+}
+
+
+.forecast-sidebar input[type="text"]:focus,
+.forecast-sidebar input[type="number"]:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 6px var(--color-primary-light);
+  background-color: var(--color-surface);
+}
+
+/* Action buttons */
+.forecast-sidebar button {
+  margin-top: var(--space-16);
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 0.85rem 1.25rem;
+  font-size: var(--font-size-base);
+  border-radius: var(--radius-base);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+
+/* Forecast result texts */
+.forecast-result {
+  font-size: var(--font-size-base);
+  margin-top: var(--space-16);
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+/* Responsive forecast view */
+@media (max-width: 1024px) {
+  .forecast-view {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .forecast-map {
+    height: 500px;
+  }
+
+  .forecast-sidebar {
+    padding: var(--space-16);
+  }
+}
+
+/* Remove spinner arrows in number input */
+.forecast-sidebar input[type="number"]::-webkit-inner-spin-button, 
+.forecast-sidebar input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
