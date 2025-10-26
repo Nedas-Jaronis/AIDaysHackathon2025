@@ -4,7 +4,8 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.heat'
 import './App.css'
-
+import React from 'react';
+import ForecastHeatmaps from './components/heatMap'
 export interface Property {
   id: number
   name?: string
@@ -33,6 +34,7 @@ export interface Property {
   ghi_oct?: number;
   ghi_nov?: number;
   ghi_dec?: number;
+  acrePrice: number;
 }
 
 type ViewMode = 'for-sale' | 'map' | 'forecast'
@@ -84,75 +86,171 @@ function App() {
   const [page, setPage] = useState(1);
   const pageSize = 5;
   const [forecastState, setForecastState] = useState('CA')
-  const [forecastYears, setForecastYears] = useState(10)
   const [forecastData, setForecastData] = useState<any | null>(null)
   const [forecastLoading, setForecastLoading] = useState(false)
   const [forecastError, setForecastError] = useState<string | null>(null)
+  const [forecastYearsAhead, setForecastYearsAhead] = useState(5);
+  const [displayYear, setDisplayYear] = useState(2023);
+  const [similarProperties, setSimilarProperties] = useState<Property[]>([]);
+  const [loadingSimilar, setLoadingSimilar] = useState(false);
+  const propertyDetailsRef = React.useRef<HTMLDivElement>(null);
+  const [chartUrl, setChartUrl] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
+
+
+
+
+  
+  const fetchForecastChart = () => {
+    setChartUrl(null);
+    fetch(`http://localhost:8000/forecast_chart?state=${encodeURIComponent(forecastState)}&years_ahead=${encodeURIComponent(forecastYearsAhead ?? '')}`)
+      .then(res => {
+        if (!res.ok) return res.text().then(text => Promise.reject(new Error(text.substring(0, 100))));
+        return res.blob();
+      })
+      .then(blob => {
+        setChartUrl(URL.createObjectURL(blob));
+      })
+      .catch(err => {
+        setForecastError(`Error fetching chart: ${err.message}`);
+      });
+  };
+
+
+
+  
   
   const fetchForecast = () => {
-      setForecastLoading(true)
-      setForecastError(null)
-      setForecastData(null)
-      fetch(`http://localhost:8000/forecast?state=${forecastState}&years_ahead=${forecastYears}`)
-        .then(res => {
-          if (!res.ok) throw new Error(`Error: ${res.statusText}`)
-          return res.json()
-        })
-        .then(data => {
-          setForecastData(data)
-          setForecastLoading(false)
-        })
-        .catch(err => {
-          setForecastError(err.message)
-          setForecastLoading(false)
-        })
+    if (!forecastState || forecastState.length !== 2) {
+      setForecastError("Please enter a valid 2-letter state abbreviation.");
+      return;
     }
+    if (!forecastYearsAhead || typeof forecastYearsAhead !== 'number' || forecastYearsAhead <= 0 || forecastYearsAhead > 100) {
+      setForecastError("Please enter years ahead between 1 and 100.");
+      return;
+    }
+    setForecastLoading(true);
+    setForecastError(null);
+    setForecastData(null);
+    setChartUrl(null);  // clear previous chart
 
-      const handleForecastKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-          fetchForecast()
+    // Fetch forecast summary data
+    fetch(`http://localhost:8000/forecast?state=${encodeURIComponent(forecastState)}&years_ahead=${encodeURIComponent(forecastYearsAhead)}`)
+      .then(res => {
+        if (!res.ok) {
+          return res.text().then(text => Promise.reject(new Error(text.substring(0, 100))));
         }
-      }
+        return res.json();
+      })
+      .then(data => {
+        setForecastData(data);
+
+        // After summary, fetch the chart image
+        return fetch(`http://localhost:8000/forecast_chart?state=${encodeURIComponent(forecastState)}&years_ahead=${encodeURIComponent(forecastYearsAhead)}`);
+      })
+      .then(res => {
+        if (!res.ok) {
+          return res.text().then(text => Promise.reject(new Error(text.substring(0, 100))));
+        }
+        return res.blob();
+      })
+      .then(blob => {
+        setChartUrl(URL.createObjectURL(blob));
+        setForecastLoading(false);
+      })
+      .catch(err => {
+        setForecastError(`Failed to fetch forecast or chart: ${err.message}. Make sure the backend server is running on port 8000.`);
+        setForecastLoading(false);
+      });
+  };
 
 useEffect(() => {
   fetch('http://localhost:8000/properties')
     .then(res => res.json())
     .then((data: any[]) => {
-      const mapped = data.map(p => ({
-        id: p.id,
-        name: p.address,
-        location: p.address,
-        acres: p.acres ?? 0,
-        slope: p.tilt_deg !== undefined ? Number(p.tilt_deg.toFixed(2)) : 0,
-        sunIrradiation: p.annual_ghi !== undefined? Number(p.annual_ghi.toFixed(2)): 0,
-        gridDistance: p.nearest_substation_km !== undefined ? Number(p.nearest_substation_km.toFixed(2)) : 0,
-        suitabilityScore: Math.ceil(p.solar_score ?? 0),
-        price: p.price ? `$${Number(p.price).toLocaleString()}` : 'N/A',
-        forSale: p.for_sale ?? true,
-        estimatedValue: p.estimated_value ? `$${Number(p.estimated_value).toLocaleString()}` : undefined,
-        owner: p.owner,
-        coordinates: { lat: p.latitude, lng: p.longitude },
-        ghi_jan: p.ghi_jan !== undefined ? Number(p.ghi_jan.toFixed(2)) : undefined,
-        ghi_feb: p.ghi_feb !== undefined ? Number(p.ghi_feb.toFixed(2)) : undefined,
-        ghi_mar: p.ghi_mar !== undefined ? Number(p.ghi_mar.toFixed(2)) : undefined,
-        ghi_apr: p.ghi_apr !== undefined ? Number(p.ghi_apr.toFixed(2)) : undefined,
-        ghi_may: p.ghi_may !== undefined ? Number(p.ghi_may.toFixed(2)) : undefined,
-        ghi_jun: p.ghi_jun !== undefined ? Number(p.ghi_jun.toFixed(2)) : undefined,
-        ghi_jul: p.ghi_jul !== undefined ? Number(p.ghi_jul.toFixed(2)) : undefined,
-        ghi_aug: p.ghi_aug !== undefined ? Number(p.ghi_aug.toFixed(2)) : undefined,
-        ghi_sep: p.ghi_sep !== undefined ? Number(p.ghi_sep.toFixed(2)) : undefined,
-        ghi_oct: p.ghi_oct !== undefined ? Number(p.ghi_oct.toFixed(2)) : undefined,
-        ghi_nov: p.ghi_nov !== undefined ? Number(p.ghi_nov.toFixed(2)) : undefined,
-        ghi_dec: p.ghi_dec !== undefined ? Number(p.ghi_dec.toFixed(2)) : undefined,
-      }))
-      setProperties(mapped)
-      setLoading(false)
-    })
-    .catch(err => {
-      console.error('Error fetching properties:', err)
-      setLoading(false)
-    })
+      const mapped = data.map(p => {
+    // Safely parse price
+    const numericPrice = p.price ? Number(p.price.toString().replace(/[^0-9.-]+/g, '')) : 0;
+    const acres = p.acres ?? 0;
+
+    return {
+      id: p.id,
+      name: p.address,
+      location: p.address,
+      acres: acres,
+      slope: p.tilt_deg !== undefined ? Number(p.tilt_deg.toFixed(2)) : 0,
+      sunIrradiation: p.annual_ghi !== undefined ? Number(p.annual_ghi.toFixed(2)) : 0,
+      gridDistance: p.nearest_substation_km !== undefined ? Number(p.nearest_substation_km.toFixed(2)) : 0,
+      suitabilityScore: Math.ceil(p.solar_score ?? 0),
+      numericPrice: numericPrice,
+      price: p.price ? `$${numericPrice.toLocaleString()}` : 'N/A',
+      forSale: p.for_sale ?? true,
+      estimatedValue: p.estimated_value ? `$${Number(p.estimated_value.toString().replace(/[^0-9.-]+/g, '')).toLocaleString()}` : undefined,
+      owner: p.owner,
+      coordinates: { lat: p.latitude, lng: p.longitude },
+      ghi_jan: p.ghi_jan !== undefined ? Number(p.ghi_jan.toFixed(2)) : undefined,
+      ghi_feb: p.ghi_feb !== undefined ? Number(p.ghi_feb.toFixed(2)) : undefined,
+      ghi_mar: p.ghi_mar !== undefined ? Number(p.ghi_mar.toFixed(2)) : undefined,
+      ghi_apr: p.ghi_apr !== undefined ? Number(p.ghi_apr.toFixed(2)) : undefined,
+      ghi_may: p.ghi_may !== undefined ? Number(p.ghi_may.toFixed(2)) : undefined,
+      ghi_jun: p.ghi_jun !== undefined ? Number(p.ghi_jun.toFixed(2)) : undefined,
+      ghi_jul: p.ghi_jul !== undefined ? Number(p.ghi_jul.toFixed(2)) : undefined,
+      ghi_aug: p.ghi_aug !== undefined ? Number(p.ghi_aug.toFixed(2)) : undefined,
+      ghi_sep: p.ghi_sep !== undefined ? Number(p.ghi_sep.toFixed(2)) : undefined,
+      ghi_oct: p.ghi_oct !== undefined ? Number(p.ghi_oct.toFixed(2)) : undefined,
+      ghi_nov: p.ghi_nov !== undefined ? Number(p.ghi_nov.toFixed(2)) : undefined,
+      ghi_dec: p.ghi_dec !== undefined ? Number(p.ghi_dec.toFixed(2)) : undefined,
+      acrePrice: acres > 0 ? Number((numericPrice / acres).toFixed(2)) : 0,
+    }
+  });
+
+  setProperties(mapped);
+  setLoading(false);
+})
+.catch(err => {
+  console.error('Error fetching properties:', err)
+  setLoading(false)
+});
 }, [])
+
+// Add this RIGHT AFTER the existing useEffect that fetches properties
+useEffect(() => {
+  if (selectedProperty && viewMode !== 'forecast') {
+    setLoadingSimilar(true)
+    fetch(`http://localhost:8000/similar-properties/${selectedProperty.id}?k=3`)
+      .then(res => res.json())
+      .then(data => {
+        const similarProps = data.map((item: any) => {
+          const p = item.property
+          const numericPrice = p.price ? Number(p.price.toString().replace(/[^0-9.-]+/g, '')) : 0
+          const acres = p.acres ?? 0
+          return {
+            id: p.id,
+            name: p.address,
+            location: p.address,
+            acres: acres,
+            slope: p.tilt_deg !== undefined ? Number(p.tilt_deg.toFixed(2)) : 0,
+            sunIrradiation: p.annual_ghi !== undefined ? Number(p.annual_ghi.toFixed(2)) : 0,
+            gridDistance: p.nearest_substation_km !== undefined ? Number(p.nearest_substation_km.toFixed(2)) : 0,
+            suitabilityScore: Math.ceil(p.solar_score ?? 0),
+            price: p.price ? `$${numericPrice.toLocaleString()}` : 'N/A',
+            forSale: p.for_sale ?? true,
+            coordinates: { lat: p.latitude, lng: p.longitude },
+            acrePrice: acres > 0 ? Number((numericPrice / acres).toFixed(2)) : 0,
+          }
+        })
+        setSimilarProperties(similarProps)
+        setLoadingSimilar(false)
+      })
+      .catch(err => {
+        console.error('Error fetching similar properties:', err)
+        setSimilarProperties([])
+        setLoadingSimilar(false)
+      })
+  }
+}, [selectedProperty, viewMode])
 
 
 const getSuitabilityColor = (score: number) => {
@@ -279,6 +377,7 @@ const getSuitabilityLabel = (score: number) => {
             className={`tab-button ${viewMode === 'forecast' ? 'active' : ''}`}
             onClick={() => setViewMode('forecast')}
           >
+            {/* You can replace the icon svg below with something more fitting */}
             <svg
               width="18"
               height="18"
@@ -294,7 +393,101 @@ const getSuitabilityLabel = (score: number) => {
             Forecast
           </button>
         </div>
+        
 
+       {viewMode === 'forecast' && (
+  <div className="forecast-view">
+    <div className="forecast-map">
+      <ForecastHeatmaps selectedYear={displayYear} />
+    </div>
+    <div className="forecast-sidebar" style={{ width: 350, padding: 20 }}>
+      {/* Existing inputs and buttons */}
+      <label style={{ display: 'block', marginBottom: '1rem' }}>
+        State Abbreviation:
+        <input
+          type="text"
+          value={forecastState}
+          onChange={e => setForecastState(e.target.value.toUpperCase())}
+          maxLength={2}
+          placeholder=""
+          style={{ display: 'block', marginTop: '0.25rem', width: '100%' }}
+        />
+      </label>
+
+      <label style={{ display: 'block', marginBottom: '1rem' }}>
+        Years Ahead:
+        <input
+          type="number"
+          value={forecastYearsAhead}
+          onChange={e => setForecastYearsAhead(Number(e.target.value))}
+          min={1}
+          max={100}
+          placeholder=""
+          style={{ display: 'block', marginTop: '0.25rem', width: '100%' }}
+        />
+      </label>
+
+      <button onClick={fetchForecast} disabled={forecastLoading} style={{ width: '100%' }}>
+        {forecastLoading ? 'Loading...' : 'Get Forecast'}
+      </button>
+
+      {forecastLoading && <p>Loading forecast...</p>}
+      {forecastError && <p style={{ color: 'red' }}>{forecastError}</p>}
+
+      {forecastData && (
+        <>
+          <p>Current percent renewable: {forecastData.current_percent_renewable.toFixed(2)}%</p>
+          <p>Predicted average percent renewable over the next {forecastYearsAhead} years: {forecastData.average_forecast_percent_renewable.toFixed(2)}%</p>
+          <p>Predicted average increase in renewable energy over the next {forecastYearsAhead} years: {forecastData.predicted_increase.toFixed(2)}%</p>
+
+          {/* Chart image after the text */}
+          {chartUrl && (
+            <div style={{ marginTop: '1rem', cursor: 'pointer' }} onClick={() => setIsModalOpen(true)}>
+              <img
+                src={chartUrl || undefined}
+                alt="Renewable energy prediction mapping chart"
+                style={{ width: '100%', borderRadius: 8, boxShadow: '0 0 8px rgba(0,0,0,0.1)' }}
+              />
+              <small style={{ display: 'block', textAlign: 'center', cursor: 'pointer' }}>
+                Prediction Line Chart | Click to enlarge
+              </small>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Modal overlay for enlarged image */}
+      {isModalOpen && chartUrl && (
+        <div
+          onClick={() => setIsModalOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            cursor: 'zoom-out',
+          }}
+        >
+          <img
+            src={chartUrl}
+            alt="Enlarged renewable energy prediction mapping chart"
+            style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8 }}
+          />
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+
+
+
+
+      {viewMode !== 'forecast' && (
+        <>
         {viewMode !== 'map' ? (
           <>
             <div className="controls">
@@ -316,71 +509,11 @@ const getSuitabilityLabel = (score: number) => {
                   <label className="form-label">Sort by:</label>
                   <select className="form-control" value={sortBy} onChange={e => setSortBy(e.target.value as any)}>
                     <option value="score">Suitability Score</option>
-                    <option value="acres">Land Size</option>
+                    <option value="acrePrice">Price/Acre</option>
                     <option value="price">Price</option>
                   </select>
                 </div>
               )}
-                {viewMode === 'forecast' && (
-                  <div className="forecast-tab" style={{ padding: '1rem' }}>
-                    <h2>Renewable Energy Forecast</h2>
-                    <div style={{ marginBottom: '1rem' }}>
-                      <label>
-                        State Abbreviation:{' '}
-                        <input
-                          value={forecastState}
-                          onChange={e => setForecastState(e.target.value.toUpperCase())}
-                          onKeyDown={handleForecastKeyDown}
-                          maxLength={2}
-                          style={{ width: '3rem', textTransform: 'uppercase' }}
-                        />
-                      </label>
-                      <label style={{ marginLeft: '1rem' }}>
-                        Years Ahead:{' '}
-                        <input
-                          type="number"
-                          value={forecastYears}
-                          onChange={e => setForecastYears(Number(e.target.value))}
-                          onKeyDown={handleForecastKeyDown}
-                          min={1}
-                          max={50}
-                          style={{ width: '4rem' }}
-                        />
-                      </label>
-                      <button onClick={fetchForecast} style={{ marginLeft: '1rem' }}>
-                        Get Forecast
-                      </button>
-                    </div>
-
-                    {forecastLoading && <p>Loading forecast...</p>}
-                    {forecastError && <p style={{ color: 'red' }}>{forecastError}</p>}
-
-                    {forecastData && (
-                      <>
-                        <p>Current percent renewable: {forecastData.current_percent_renewable.toFixed(2)}%</p>
-                        <p>Predicted avg percent renewable over next {forecastYears} years: {forecastData.average_forecast_percent_renewable.toFixed(2)}%</p>
-                        <p>Predicted avg increase in renewable over next {forecastYears} years: {forecastData.predicted_increase.toFixed(2)}%</p>
-
-                        {/* Forecast heatmap placeholder */}
-                        <div
-                          style={{
-                            marginTop: '2rem',
-                            height: 400,
-                            background: '#eee',
-                            borderRadius: 8,
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            color: '#777',
-                            fontWeight: 'bold',
-                          }}
-                        >
-                          Heatmap visualization coming soon...
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
             </div>
 
 
@@ -545,243 +678,336 @@ const getSuitabilityLabel = (score: number) => {
 
               </div>
 
-              <div className="details-panel">
-                {selectedProperty ? (
-                  <div className="property-details">
-                    <h2 className="section-title">Property Details</h2>
-                    <div className="detail-card">
-                      <h3>{selectedProperty.name}</h3>
-                      {!selectedProperty.forSale && (
-                        <span
-                          className="status status--warning"
-                          style={{ marginBottom: 'var(--space-12)', display: 'inline-block' }}
-                        >
-                          Not Currently For Sale
-                        </span>
-                      )}
-                      <div className="detail-row">
-                        <span className="detail-label">Location</span>
-                        <span className="detail-value">{selectedProperty.location}</span>
-                      </div>
-                      <div className="detail-row">
-                        <span className="detail-label">Coordinates</span>
-                        <span className="detail-value">
-                          {selectedProperty.coordinates.lat.toFixed(4)},{' '}
-                          {selectedProperty.coordinates.lng.toFixed(4)}
-                        </span>
-                      </div>
-                      <div className="detail-row">
-                        <span className="detail-label">Total Acreage</span>
-                        <span className="detail-value">{selectedProperty.acres} acres</span>
-                      </div>
-                      {selectedProperty.owner && (
-                        <div className="detail-row">
-                          <span className="detail-label">Current Owner</span>
-                          <span className="detail-value">{selectedProperty.owner}</span>
-                        </div>
-                      )}
-                      <div className="detail-row">
-                        <span className="detail-label">
-                          {selectedProperty.forSale ? 'Price' : 'Estimated Value'}
-                        </span>
-                        <span className="detail-value">
-                          {selectedProperty.forSale ? selectedProperty.price : selectedProperty.estimatedValue}
-                        </span>
-                      </div>
-                      <button
-                        className="btn btn--outline btn--sm"
-                        onClick={() => setShowMonthlySunlight(!showMonthlySunlight)}
-                      >
-                        {showMonthlySunlight ? 'Hide' : 'Show'} Monthly Sunlight Radiation
-                      </button>
+  <div className="details-panel" ref={propertyDetailsRef}>
+  {selectedProperty ? (
+    <div className="property-details">
+      <h2 className="section-title">Property Details</h2>
+      <div className="detail-card">
+        <h3>{selectedProperty.name}</h3>
+        {!selectedProperty.forSale && (
+          <span
+            className="status status--warning"
+            style={{ marginBottom: 'var(--space-12)', display: 'inline-block' }}
+          >
+            Not Currently For Sale
+          </span>
+        )}
+        <div className="detail-row">
+          <span className="detail-label">Location</span>
+          <span className="detail-value">{selectedProperty.location}</span>
+        </div>
+        <div className="detail-row">
+          <span className="detail-label">Coordinates</span>
+          <span className="detail-value">
+            {selectedProperty.coordinates.lat.toFixed(4)},{' '}
+            {selectedProperty.coordinates.lng.toFixed(4)}
+          </span>
+        </div>
+        <div className="detail-row">
+          <span className="detail-label">Total Acreage</span>
+          <span className="detail-value">{selectedProperty.acres} acres</span>
+        </div>
+        {selectedProperty.owner && (
+          <div className="detail-row">
+            <span className="detail-label">Current Owner</span>
+            <span className="detail-value">{selectedProperty.owner}</span>
+          </div>
+        )}
+        <div className="detail-row">
+          <span className="detail-label">
+            {selectedProperty.forSale ? 'Price' : 'Estimated Value'}
+          </span>
+          <span className="detail-value">
+            {selectedProperty.forSale ? selectedProperty.price : selectedProperty.estimatedValue}
+          </span>
+        </div>
+        <button
+          className="btn btn--outline btn--sm"
+          onClick={() => setShowMonthlySunlight(!showMonthlySunlight)}
+        >
+          {showMonthlySunlight ? 'Hide' : 'Show'} Monthly Sunlight Radiation
+        </button>
 
-                      {showMonthlySunlight && (
-                        <div className="monthly-sunlight-details">
-                          <h4>Average Monthly Sunlight Radiation (kWh/m²/day)</h4>
-                          <ul>
-                            {selectedProperty && Object.entries({
-                              Jan: selectedProperty.ghi_jan,
-                              Feb: selectedProperty.ghi_feb,
-                              Mar: selectedProperty.ghi_mar,
-                              Apr: selectedProperty.ghi_apr,
-                              May: selectedProperty.ghi_may,
-                              Jun: selectedProperty.ghi_jun,
-                              Jul: selectedProperty.ghi_jul,
-                              Aug: selectedProperty.ghi_aug,
-                              Sep: selectedProperty.ghi_sep,
-                              Oct: selectedProperty.ghi_oct,
-                              Nov: selectedProperty.ghi_nov,
-                              Dec: selectedProperty.ghi_dec,
-                            }).map(([month, value]) => (
-                              <li key={month}>
-                                <strong>{month}:</strong> {value !== undefined ? value.toFixed(2) : 'N/A'}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
+        {showMonthlySunlight && (
+          <div className="monthly-sunlight-details">
+            <h4>Average Monthly Sunlight Radiation (kWh/m²/day)</h4>
+            <ul>
+              {selectedProperty && Object.entries({
+                Jan: selectedProperty.ghi_jan,
+                Feb: selectedProperty.ghi_feb,
+                Mar: selectedProperty.ghi_mar,
+                Apr: selectedProperty.ghi_apr,
+                May: selectedProperty.ghi_may,
+                Jun: selectedProperty.ghi_jun,
+                Jul: selectedProperty.ghi_jul,
+                Aug: selectedProperty.ghi_aug,
+                Sep: selectedProperty.ghi_sep,
+                Oct: selectedProperty.ghi_oct,
+                Nov: selectedProperty.ghi_nov,
+                Dec: selectedProperty.ghi_dec,
+              }).map(([month, value]) => (
+                <li key={month}>
+                  <strong>{month}:</strong> {value !== undefined ? value.toFixed(2) : 'N/A'}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
 
-                    <div className="detail-card">
-                      <h4>Solar Suitability Analysis</h4>
-                      <div className="suitability-score">
-                        <div
-                          className="score-circle"
-                          style={{ borderColor: getSuitabilityColor(selectedProperty.suitabilityScore) }}
-                        >
-                          <span className="score-number">{selectedProperty.suitabilityScore}</span>
-                          <span className="score-text">{getSuitabilityLabel(selectedProperty.suitabilityScore)}</span>
-                        </div>
-                      </div>
+      <div className="detail-card">
+        <h4>Solar Suitability Analysis</h4>
+        <div className="suitability-score">
+          <div
+            className="score-circle"
+            style={{ borderColor: getSuitabilityColor(selectedProperty.suitabilityScore) }}
+          >
+            <span className="score-number">{selectedProperty.suitabilityScore}</span>
+            <span className="score-text">{getSuitabilityLabel(selectedProperty.suitabilityScore)}</span>
+          </div>
+        </div>
 
-                      <div className="criteria-list">
-                        <div className="criteria-item">
-                          <div className="criteria-header">
-                            <span>Slope Analysis</span>
-                            <span
-                              className={
-                                selectedProperty.slope !== undefined && selectedProperty.slope >= 0 && selectedProperty.slope <= 5
-                                  ? 'status status--success'
-                                  : 'status status--warning'
-                              }
-                            >
-                              {selectedProperty.slope !== undefined && selectedProperty.slope >= 0 && selectedProperty.slope <= 5
-                                ? 'Optimal'
-                                : 'Acceptable'}
-                            </span>
-                          </div>
-                          <div className="progress-bar">
-                            <div
-                              className="progress-fill"
-                              style={{
-                                width: `${Math.max(0, 100 - (selectedProperty.slope ?? 0) * 10)}%`,
-                                backgroundColor:
-                                  selectedProperty.slope !== undefined && selectedProperty.slope >= 0 && selectedProperty.slope <= 5
-                                    ? 'var(--color-success)'
-                                    : 'var(--color-warning)'
-                              }}
-                            />
-                          </div>
-                          <p className="criteria-note">{selectedProperty.slope}° slope (ideal: &lt;5°)</p>
-                        </div>
-
-                        <div className="criteria-item">
-                          <div className="criteria-header">
-                            <span>Sunlight Exposure</span>
-                            <span
-                              className={
-                                selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 15
-                                  ? 'status status--success'
-                                  : 'status status--warning'
-                              }
-                            >
-                              {selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 15 ? 'Excellent' : 'Good'}
-                            </span>
-                          </div>
-                          <div className="progress-bar">
-                            <div
-                              className="progress-fill"
-                              style={{
-                                width: `${((selectedProperty.sunIrradiation ?? 0) / 12) * 100}%`,
-                                backgroundColor:
-                                  selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 15
-                                    ? 'var(--color-success)'
-                                    : 'var(--color-warning)'
-                              }}
-                            />
-                          </div>
-                          <p className="criteria-note">{selectedProperty.sunIrradiation} W/m² daily average</p>
-                        </div>
-
-                        <div className="criteria-item">
-                          <div className="criteria-header">
-                            <span>Grid Proximity</span>
-                            <span
-                              className={
-                                selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5
-                                  ? 'status status--success'
-                                  : 'status status--warning'
-                              }
-                            >
-                              {selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5 ? 'Optimal' : 'Good'}
-                            </span>
-                          </div>
-                          <div className="progress-bar">
-                            <div
-                              className="progress-fill"
-                              style={{
-                                width: `${Math.max(0, 100 - ((selectedProperty.gridDistance ?? 0) * 8))}%`,
-                                backgroundColor:
-                                  selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5
-                                    ? 'var(--color-success)'
-                                    : 'var(--color-warning)'
-                              }}
-                            />
-                          </div>
-                          <p className="criteria-note">{selectedProperty.gridDistance} kilometers to nearest connection</p>
-                        </div>
-
-                        <div className="criteria-item">
-                          <div className="criteria-header">
-                            <span>Land Size</span>
-                            <span
-                              className={
-                                selectedProperty.acres !== undefined && selectedProperty.acres >= 50
-                                  ? 'status status--success'
-                                  : 'status status--warning'
-                              }
-                            >
-                              {selectedProperty.acres !== undefined && selectedProperty.acres >= 50 ? 'Large-scale ready' : 'Community-scale'}
-                            </span>
-                          </div>
-                          <div className="progress-bar">
-                            <div
-                              className="progress-fill"
-                              style={{
-                                width: `${Math.min(100, ((selectedProperty.acres ?? 0) / 200) * 100)}%`,
-                                backgroundColor: 'var(--color-primary)', // Primary color for land size
-                              }}
-                            />
-                          </div>
-                          <p className="criteria-note">{selectedProperty.acres} acres (min. 50 for commercial)</p>
-                        </div>
-                      </div>
-
-                      <div className="action-buttons">
-                        {selectedProperty.forSale ? (
-                          <>
-                            <button className="btn btn--primary btn--full-width">Request Site Visit</button>
-                          </>
-                        ) : (
-                          <>
-                            <button className="btn btn--primary btn--full-width">Contact Owner</button>
-                            <button className="btn btn--outline btn--full-width">Request Valuation</button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="detail-card">
-                      <h4>Profit Analysis</h4>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="empty-state">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    <h3>Select a Property</h3>
-                    <p>Click on any property card to view detailed solar suitability analysis</p>
-                  </div>
-                )}
-              </div>
+        <div className="criteria-list">
+          <div className="criteria-item">
+            <div className="criteria-header">
+              <span>Slope Analysis</span>
+              <span
+                className={
+                  selectedProperty.slope !== undefined && selectedProperty.slope >= 0 && selectedProperty.slope <= 5
+                    ? 'status status--success'
+                    : 'status status--warning'
+                }
+              >
+                {selectedProperty.slope !== undefined && selectedProperty.slope >= 0 && selectedProperty.slope <= 5
+                  ? 'Optimal'
+                  : 'Acceptable'}
+              </span>
             </div>
+            <div className="progress-bar">
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${Math.max(0, 100 - (selectedProperty.slope ?? 0) * 10)}%`,
+                  backgroundColor:
+                    selectedProperty.slope !== undefined && selectedProperty.slope >= 0 && selectedProperty.slope <= 5
+                      ? 'var(--color-success)'
+                      : 'var(--color-warning)'
+                }}
+              />
+            </div>
+            <p className="criteria-note">{selectedProperty.slope}° slope (ideal: &lt;5°)</p>
+          </div>
+
+          <div className="criteria-item">
+            <div className="criteria-header">
+              <span>Sunlight Exposure</span>
+              <span
+                className={
+                  selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 5
+                    ? 'status status--success'
+                    : 'status status--warning'
+                }
+              >
+                {selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 5 ? 'Excellent' : 'Good'}
+              </span>
+            </div>
+            <div className="progress-bar">
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${Math.max(0, Math.min(((selectedProperty.sunIrradiation ?? 0) - 4) / 2, 1) * 100)}%`,
+                  backgroundColor:
+                    selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 5
+                      ? 'var(--color-success)'
+                      : 'var(--color-warning)'
+                }}
+              />
+            </div>
+            <p className="criteria-note">{selectedProperty.sunIrradiation} W/m² daily average</p>
+          </div>
+
+          <div className="criteria-item">
+            <div className="criteria-header">
+              <span>Grid Proximity</span>
+              <span
+                className={
+                  selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5
+                    ? 'status status--success'
+                    : 'status status--warning'
+                }
+              >
+                {selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5 ? 'Optimal' : 'Good'}
+              </span>
+            </div>
+            <div className="progress-bar">
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${Math.max(0, 100 - ((selectedProperty.gridDistance ?? 0) * 20))}%`,
+                  backgroundColor:
+                    selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5
+                      ? 'var(--color-success)'
+                      : 'var(--color-warning)'
+                }}
+              />
+            </div>
+            <p className="criteria-note">{selectedProperty.gridDistance} kilometers to nearest connection</p>
+          </div>
+
+          <div className="criteria-item">
+            <div className="criteria-header">
+              <span>Price/Acre</span>
+              <span
+                className={
+                  selectedProperty.acrePrice !== undefined && selectedProperty.acrePrice <= 1500
+                    ? 'status status--success'
+                    : 'status status--warning'
+                }
+              >
+                {selectedProperty.acrePrice !== undefined && selectedProperty.acrePrice <= 1500 ? 'Excellent' : 'Not Great'}
+              </span>
+            </div>
+            <div className="progress-bar">
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${Math.max(
+                      0,
+                      Math.min(100, ((3000 - (selectedProperty.acrePrice ?? 0)) / 2500) * 100)
+                    )}%`,
+                  backgroundColor:
+                    selectedProperty.acrePrice !== undefined && selectedProperty.acrePrice <= 1500
+                      ? 'var(--color-success)'
+                      : 'var(--color-warning)',
+                }}
+              />
+            </div>
+            <p className="criteria-note">${selectedProperty.acrePrice}/Acre </p>
+          </div>
+        </div>
+
+        <div className="action-buttons">
+          {selectedProperty.forSale ? (
+            <>
+              <button className="btn btn--primary btn--full-width">Request Site Visit</button>
+            </>
+          ) : (
+            <>
+              <button className="btn btn--primary btn--full-width">Contact Owner</button>
+              <button className="btn btn--outline btn--full-width">Request Valuation</button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="detail-card">
+        <h4>Similar Properties</h4>
+        {loadingSimilar ? (
+          <p>Loading similar properties...</p>
+        ) : similarProperties.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {similarProperties.map(prop => (
+              <div
+                key={prop.id}
+                className="property-card"
+                style={{ cursor: 'pointer', margin: 0 }}
+                onClick={() => {
+                  setSelectedProperty(prop);
+                  if (propertyDetailsRef.current) {
+                  propertyDetailsRef.current.scrollTop = 0;
+                }
+
+                }}
+
+              >
+                <div className="property-header">
+                  <div>
+                    <h3 style={{ fontSize: '1rem' }}>{prop.name}</h3>
+                    <p className="location" style={{ fontSize: '0.875rem' }}>
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      {prop.location}
+                    </p>
+                  </div>
+                  <div
+                    className="score-badge"
+                    style={{
+                      backgroundColor: `${getSuitabilityColor(prop.suitabilityScore)}20`,
+                      borderColor: getSuitabilityColor(prop.suitabilityScore),
+                      color: getSuitabilityColor(prop.suitabilityScore),
+                    }}
+                  >
+                    <span className="score-value">{prop.suitabilityScore}</span>
+                  </div>
+                </div>
+                <div className="property-metrics" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                  <div className="metric">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    </svg>
+                    <span className="metric-label">Size</span>
+                    <span className="metric-value">{prop.acres} acres</span>
+                  </div>
+                  <div className="metric">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <circle cx="12" cy="12" r="5" />
+                    </svg>
+                    <span className="metric-label">Sun</span>
+                    <span className="metric-value">{prop.sunIrradiation} W/m²</span>
+                  </div>
+                </div>
+                <div className="property-footer">
+                  <div className="price">{prop.price}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p>No similar properties found.</p>
+        )}
+      </div>
+
+    </div>
+  ) : (
+    <div className="empty-state">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+        <circle cx="12" cy="10" r="3" />
+      </svg>
+      <h3>Select a Property</h3>
+      <p>Click on any property card to view detailed solar suitability analysis</p>
+    </div>
+  )}
+</div>
+</div>
           </>
         ) : (
           <div className="map-view">
             <div className="map-container">
-              <MapContainer center={[35.5, -110.0]} zoom={6} style={{ height: '100%', width: '100%' }} scrollWheelZoom={true}>
+              <MapContainer center={[35.5, -110.0]} zoom={6} style={{ height: '100%', width: '100%' }} scrollWheelZoom={true} attributionControl={false}>
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -909,6 +1135,8 @@ const getSuitabilityLabel = (score: number) => {
             </div>
           </div>
         )}
+        </>
+      )}
       </main>
     </div>
   )
