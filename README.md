@@ -17,7 +17,7 @@ This section contains instructions on cloning and running this repository.
 1. Clone the repository
 
     ```shell
-    git@github.com:Nedas-Jaronis/AIDaysHackathon2025.git
+    git clone git@github.com:Nedas-Jaronis/AIDaysHackathon2025.git
     cd AIDaysHackathon2025/
     ```
 
