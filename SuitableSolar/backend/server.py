@@ -8,6 +8,10 @@ import joblib
 from forecastModel import multi_year_forecast
 import pandas as pd
 import os
+from fastapi.responses import JSONResponse
+from fastapi.exception_handlers import RequestValidationError
+from fastapi import Request
+from fastapi.exceptions import RequestValidationError
 
 DB_PATH = Path(__file__).parent / "locations.db"
 
@@ -219,3 +223,19 @@ def get_forecast(
         "average_forecast_percent_renewable": avg_percent_renewable,
         "predicted_increase": predicted_increase
     }
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )

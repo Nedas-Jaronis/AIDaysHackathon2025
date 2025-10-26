@@ -85,24 +85,33 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 5;
-  const [forecastState, setForecastState] = useState('')
+  const [forecastState, setForecastState] = useState('CA')
   const [forecastData, setForecastData] = useState<any | null>(null)
   const [forecastLoading, setForecastLoading] = useState(false)
   const [forecastError, setForecastError] = useState<string | null>(null)
-  const [forecastYears, setForecastYears] = useState(2023);
+  const [forecastYearsAhead, setForecastYearsAhead] = useState(5);
+  const [displayYear, setDisplayYear] = useState(2023);
   
   
-  const fetchForecast = () => {
-      if (!forecastState || forecastState.length !== 2 || forecastYears <= 0) {
-      setForecastError("Please enter valid 2-letter state and positive years.");
+const fetchForecast = () => {
+      if (!forecastState || forecastState.length !== 2) {
+      setForecastError("Please enter a valid 2-letter state abbreviation.");
+      return;
+    }
+    if (!forecastYearsAhead || typeof forecastYearsAhead !== 'number' || forecastYearsAhead <= 0 || forecastYearsAhead > 100) {
+      setForecastError("Please enter years ahead between 1 and 100.");
       return;
     }
       setForecastLoading(true)
       setForecastError(null)
       setForecastData(null)
-      fetch(`http://localhost:8000/forecast?state=${forecastState}&years_ahead=${forecastYears}`)
+      fetch(`http://localhost:8000/forecast?state=${forecastState}&years_ahead=${forecastYearsAhead}`)
         .then(res => {
-          if (!res.ok) throw new Error(`Error: ${res.statusText}`)
+          if (!res.ok) {
+            return res.text().then(text => {
+              throw new Error(`Server error: ${res.status} - ${text.substring(0, 100)}`)
+            })
+          }
           return res.json()
         })
         .then(data => {
@@ -110,7 +119,8 @@ function App() {
           setForecastLoading(false)
         })
         .catch(err => {
-          setForecastError(err.message)
+          console.error('Forecast fetch error:', err)
+          setForecastError(`Failed to fetch forecast: ${err.message}. Make sure the backend server is running on port 8000.`)
           setForecastLoading(false)
         })
     }
@@ -316,7 +326,7 @@ const getSuitabilityLabel = (score: number) => {
        {viewMode === 'forecast' && (
 <div className="forecast-view">
   <div className="forecast-map">
-    <ForecastHeatmaps selectedYear={forecastYears} />
+    <ForecastHeatmaps selectedYear={displayYear} />
   </div>
     <div className="forecast-sidebar" style={{ width: 350, padding: 20 }}>
       <h2>Renewable Energy Forecast</h2>
@@ -337,8 +347,8 @@ const getSuitabilityLabel = (score: number) => {
         Years Ahead:
         <input
           type="number"
-          value={forecastYears}
-          onChange={e => setForecastYears(Number(e.target.value))}
+          value={forecastYearsAhead}
+          onChange={e => setForecastYearsAhead(Number(e.target.value))}
           onKeyDown={handleForecastKeyDown}
           min={1}
           max={100}
@@ -357,8 +367,8 @@ const getSuitabilityLabel = (score: number) => {
       {forecastData && (
         <>
           <p>Current percent renewable: {forecastData.current_percent_renewable.toFixed(2)}%</p>
-          <p>Predicted avg percent renewable over next {forecastYears} years: {forecastData.average_forecast_percent_renewable.toFixed(2)}%</p>
-          <p>Predicted avg increase in renewable over next {forecastYears} years: {forecastData.predicted_increase.toFixed(2)}%</p>
+          <p>Predicted average percent renewable over the next {forecastYearsAhead} years: {forecastData.average_forecast_percent_renewable.toFixed(2)}%</p>
+          <p>Predicted average increase in renewable energy over the next {forecastYearsAhead} years: {forecastData.predicted_increase.toFixed(2)}%</p>
         </>
       )}
     </div>
