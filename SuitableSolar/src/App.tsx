@@ -760,6 +760,10 @@ const getSuitabilityLabel = (score: number) => {
                         )}
                       </div>
                     </div>
+
+                    <div className="detail-card">
+                      <h4>Profit Analysis</h4>
+                    </div>
                   </div>
                 ) : (
                   <div className="empty-state">
