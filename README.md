@@ -21,28 +21,51 @@ This section contains instructions on cloning and running this repository.
     cd AIDaysHackathon2025/
     ```
 
-2. Start the backend
+2. Create a virtual environment.
 
     ```shell
     cd SuitableSolar/backend/
     python -m venv .venv
-    pip install -r requirements.txt
-    uvicorn main:app --reload
     ```
 
-3. `server.py` will prompt you to enter a state abbreviation and the number of years to forecast in the future. Enter the desired values and continue. The example below models California's power usage over the next 20 years.
+3. Activate the virtual environment.
+    - If you are Mac/Linux, run
+
+        ```shell
+        source ./.venv/bin/activate/
+        ```
+
+    - If you are on Windows, run
+
+        ```shell
+        .\venv\Scripts\activate
+        ```
+
+4. Install the project requirements.
+
+    ```shell
+    pip install -r requirements.txt
+    ```
+
+5. Run the server.
+
+    ```shell
+    uvicorn server:app --reload
+    ```
+
+6. `server.py` will prompt you to enter a state abbreviation and the number of years to forecast in the future. Enter the desired values and continue. The example below models California's power usage over the next 20 years.
 
     ```plain
     CA
     20
     ```
 
-4. Start the frontend
+7. In another terminal, head to the project directory and run the frontend.
 
     ```shell
-    cd SuitableSolar/src/
+    cd AIDaysHackathon2025/SuitableSolar/src/
     npm install
     npm run dev
     ```
 
-5. Open the website at http://localhost:5173
+8. Open the website at http://localhost:5173
