@@ -7,18 +7,22 @@ import math
 # Helper Functions
 # ------------------------------
 
+
 def generate_coordinates(lat, lon, radius_m, step_m=50):
     """
     Generate a grid of latitude and longitude points within a circular radius.
     """
     lat_step = step_m / 111320
     lon_step = step_m / (40008000 * np.cos(np.radians(lat)) / 360)
-    
-    latitudes = np.arange(lat - radius_m/111320, lat + radius_m/111320, lat_step)
+
+    latitudes = np.arange(lat - radius_m/111320, lat +
+                          radius_m/111320, lat_step)
     longitudes = np.arange(lon - radius_m/(40008000*np.cos(np.radians(lat))/360),
-                           lon + radius_m/(40008000*np.cos(np.radians(lat))/360),
+                           lon + radius_m /
+                           (40008000*np.cos(np.radians(lat))/360),
                            lon_step)
     return [(lat, lon) for lat in latitudes for lon in longitudes]
+
 
 def fetch_elevation(lat, lon):
     """
@@ -36,6 +40,7 @@ def fetch_elevation(lat, lon):
         return elev
     except:
         return None
+
 
 def compute_tilt(elevations, distances):
     """
@@ -56,6 +61,7 @@ def compute_tilt(elevations, distances):
 # ------------------------------
 # Main Function
 # ------------------------------
+
 
 def add_tilt_to_csv(input_csv, output_csv):
     """
@@ -85,7 +91,8 @@ def add_tilt_to_csv(input_csv, output_csv):
 
                 # Distance from center in meters
                 d_lat = (clat - lat) * 111320
-                d_lon = (clon - lon) * (40008000 * np.cos(np.radians(lat)) / 360)
+                d_lon = (clon - lon) * (40008000 *
+                                        np.cos(np.radians(lat)) / 360)
                 distances.append(math.hypot(d_lat, d_lon))
 
         tilt_deg = compute_tilt(elevations, distances)
@@ -98,5 +105,5 @@ def add_tilt_to_csv(input_csv, output_csv):
 
 
 if __name__ == "__main__":
-    add_tilt_to_csv('backend/data/addresses_geocoded.csv',
+    add_tilt_to_csv('backend/data/newdata.csv',
                     'backend/data/properties_with_tilt.csv')

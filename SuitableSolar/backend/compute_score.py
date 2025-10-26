@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 
+
 def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
     """
     Compute a Solar Suitability Score (0–100) for each property
@@ -27,7 +28,8 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
 
         # 1️⃣ Irradiance Strength (normalized)
         irradiance = (row["Annual_GHI"] + row["Annual_Tilt_Latitude"]) / 2
-        normalized_irr = (irradiance - min_ghi) / (max_ghi - min_ghi) if max_ghi != min_ghi else 1
+        normalized_irr = (irradiance - min_ghi) / \
+            (max_ghi - min_ghi) if max_ghi != min_ghi else 1
 
         # 2️⃣ Seasonal Stability
         mean_ghi = np.mean(months)
@@ -44,8 +46,10 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
         distance_factor = np.exp(-row["nearest_substation_km"] / 15)
 
         # 6️⃣ Land Value Efficiency (acres per price)
-        value_efficiency = row["acres"] / row["price"] if row["price"] > 0 else 0
-        value_factor = value_efficiency / max_value_efficiency if max_value_efficiency != 0 else 1
+        value_efficiency = row["acres"] / \
+            row["price"] if row["price"] > 0 else 0
+        value_factor = value_efficiency / \
+            max_value_efficiency if max_value_efficiency != 0 else 1
 
         # Combine (weighted)
         score = ((normalized_irr * 0.25) +      # 25%

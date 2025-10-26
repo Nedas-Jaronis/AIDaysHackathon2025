@@ -89,6 +89,7 @@ function App() {
   const [forecastData, setForecastData] = useState<any | null>(null)
   const [forecastLoading, setForecastLoading] = useState(false)
   const [forecastError, setForecastError] = useState<string | null>(null)
+  const [forecastYearsInput, setForecastYearsInput] = useState(5);
   const [forecastYearsAhead, setForecastYearsAhead] = useState(5);
   const [displayYear, setDisplayYear] = useState(2023);
   const [similarProperties, setSimilarProperties] = useState<Property[]>([]);
@@ -123,18 +124,21 @@ function App() {
   
   
   const fetchForecast = () => {
+    // Before making a fetch, update forecastYearsAhead:
+    setForecastYearsAhead(forecastYearsInput);
+
     if (!forecastState || forecastState.length !== 2) {
       setForecastError("Please enter a valid 2-letter state abbreviation.");
       return;
     }
-    if (!forecastYearsAhead || typeof forecastYearsAhead !== 'number' || forecastYearsAhead <= 0 || forecastYearsAhead > 100) {
+    if (!forecastYearsInput || typeof forecastYearsInput !== 'number' || forecastYearsInput <= 0 || forecastYearsInput > 100) {
       setForecastError("Please enter years ahead between 1 and 100.");
       return;
     }
     setForecastLoading(true);
     setForecastError(null);
     setForecastData(null);
-    setChartUrl(null);  // clear previous chart
+    setChartUrl(null);
 
     // Fetch forecast summary data
     fetch(`http://localhost:8000/forecast?state=${encodeURIComponent(forecastState)}&years_ahead=${encodeURIComponent(forecastYearsAhead)}`)
@@ -325,7 +329,7 @@ const getSuitabilityLabel = (score: number) => {
               <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
             </svg>
             <div>
-              <h1>SolScope</h1>
+              <h1>SolSearch</h1>
               <p className="tagline">Find Perfect Land for Solar Energy</p>
             </div>
           </div>
@@ -335,7 +339,9 @@ const getSuitabilityLabel = (score: number) => {
               <span className="stat-label">Properties</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">{properties.reduce((acc, p) => acc + p.acres, 0)}</span>
+              <span className="stat-value">
+                {properties.reduce((acc, p) => acc + p.acres, 0).toFixed(1)}
+              </span>
               <span className="stat-label">Total Acres</span>
             </div>
           </div>
@@ -418,8 +424,8 @@ const getSuitabilityLabel = (score: number) => {
         Years Ahead:
         <input
           type="number"
-          value={forecastYearsAhead}
-          onChange={e => setForecastYearsAhead(Number(e.target.value))}
+          value={forecastYearsInput}
+          onChange={e => setForecastYearsInput(Number(e.target.value))}
           min={1}
           max={100}
           placeholder=""
