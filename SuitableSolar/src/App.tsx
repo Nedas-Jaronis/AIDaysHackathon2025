@@ -11,7 +11,7 @@ export interface Property {
   location?: string
   acres: number
   slope?: number
-  sunlightHours?: number
+  sunIrradiation?: number
   gridDistance?: number
   suitabilityScore: number
   price: string
@@ -35,7 +35,7 @@ export interface Property {
   ghi_dec?: number;
 }
 
-type ViewMode = 'for-sale' | 'opportunities' | 'map'
+type ViewMode = 'for-sale' | 'map' | 'forecast'
 
 
 function HeatmapLayer({ properties }: { properties: Property[] }) {
@@ -83,11 +83,36 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 5;
+  const [forecastState, setForecastState] = useState('CA')
+  const [forecastYears, setForecastYears] = useState(10)
+  const [forecastData, setForecastData] = useState<any | null>(null)
+  const [forecastLoading, setForecastLoading] = useState(false)
+  const [forecastError, setForecastError] = useState<string | null>(null)
   
+  const fetchForecast = () => {
+      setForecastLoading(true)
+      setForecastError(null)
+      setForecastData(null)
+      fetch(`http://localhost:8000/forecast?state=${forecastState}&years_ahead=${forecastYears}`)
+        .then(res => {
+          if (!res.ok) throw new Error(`Error: ${res.statusText}`)
+          return res.json()
+        })
+        .then(data => {
+          setForecastData(data)
+          setForecastLoading(false)
+        })
+        .catch(err => {
+          setForecastError(err.message)
+          setForecastLoading(false)
+        })
+    }
 
-
-
-
+      const handleForecastKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+          fetchForecast()
+        }
+      }
 
 useEffect(() => {
   fetch('http://localhost:8000/properties')
@@ -99,7 +124,7 @@ useEffect(() => {
         location: p.address,
         acres: p.acres ?? 0,
         slope: p.tilt_deg !== undefined ? Number(p.tilt_deg.toFixed(2)) : 0,
-        sunlightHours: p.annual_ghi !== undefined? Number(p.annual_ghi.toFixed(2)): 0,
+        sunIrradiation: p.annual_ghi !== undefined? Number(p.annual_ghi.toFixed(2)): 0,
         gridDistance: p.nearest_substation_km !== undefined ? Number(p.nearest_substation_km.toFixed(2)) : 0,
         suitabilityScore: Math.ceil(p.solar_score ?? 0),
         price: p.price ? `$${Number(p.price).toLocaleString()}` : 'N/A',
@@ -130,10 +155,6 @@ useEffect(() => {
 }, [])
 
 
-
-
-
-
 const getSuitabilityColor = (score: number) => {
   if (score >= 80) return 'var(--color-success)';
   if (score >= 65) return 'var(--color-warning)';
@@ -142,9 +163,6 @@ const getSuitabilityColor = (score: number) => {
 }
 
 const getMarkerColor = getSuitabilityColor;
-
-
-
 
 
 const getSuitabilityLabel = (score: number) => {
@@ -242,20 +260,6 @@ const getSuitabilityLabel = (score: number) => {
             </svg>
             For Sale
           </button>
-          {/* <button className={`tab-button ${viewMode === 'opportunities' ? 'active' : ''}`} onClick={() => setViewMode('opportunities')}>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 6v6l4 2" />
-            </svg>
-            Opportunities
-          </button> */}
           <button className={`tab-button ${viewMode === 'map' ? 'active' : ''}`} onClick={() => setViewMode('map')}>
             <svg
               width="18"
@@ -270,6 +274,24 @@ const getSuitabilityLabel = (score: number) => {
               <line x1="16" y1="6" x2="16" y2="22" />
             </svg>
             Map View
+          </button>
+          <button
+            className={`tab-button ${viewMode === 'forecast' ? 'active' : ''}`}
+            onClick={() => setViewMode('forecast')}
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="6" x2="12" y2="12" />
+              <line x1="12" y1="12" x2="16" y2="14" />
+            </svg>
+            Forecast
           </button>
         </div>
 
@@ -299,25 +321,72 @@ const getSuitabilityLabel = (score: number) => {
                   </select>
                 </div>
               )}
+                {viewMode === 'forecast' && (
+                  <div className="forecast-tab" style={{ padding: '1rem' }}>
+                    <h2>Renewable Energy Forecast</h2>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label>
+                        State Abbreviation:{' '}
+                        <input
+                          value={forecastState}
+                          onChange={e => setForecastState(e.target.value.toUpperCase())}
+                          onKeyDown={handleForecastKeyDown}
+                          maxLength={2}
+                          style={{ width: '3rem', textTransform: 'uppercase' }}
+                        />
+                      </label>
+                      <label style={{ marginLeft: '1rem' }}>
+                        Years Ahead:{' '}
+                        <input
+                          type="number"
+                          value={forecastYears}
+                          onChange={e => setForecastYears(Number(e.target.value))}
+                          onKeyDown={handleForecastKeyDown}
+                          min={1}
+                          max={50}
+                          style={{ width: '4rem' }}
+                        />
+                      </label>
+                      <button onClick={fetchForecast} style={{ marginLeft: '1rem' }}>
+                        Get Forecast
+                      </button>
+                    </div>
+
+                    {forecastLoading && <p>Loading forecast...</p>}
+                    {forecastError && <p style={{ color: 'red' }}>{forecastError}</p>}
+
+                    {forecastData && (
+                      <>
+                        <p>Current percent renewable: {forecastData.current_percent_renewable.toFixed(2)}%</p>
+                        <p>Predicted avg percent renewable over next {forecastYears} years: {forecastData.average_forecast_percent_renewable.toFixed(2)}%</p>
+                        <p>Predicted avg increase in renewable over next {forecastYears} years: {forecastData.predicted_increase.toFixed(2)}%</p>
+
+                        {/* Forecast heatmap placeholder */}
+                        <div
+                          style={{
+                            marginTop: '2rem',
+                            height: 400,
+                            background: '#eee',
+                            borderRadius: 8,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            color: '#777',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          Heatmap visualization coming soon...
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
             </div>
 
-            {viewMode === 'opportunities' && (
-              <div className="info-banner">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="16" x2="12" y2="12" />
-                  <line x1="12" y1="8" x2="12.01" y2="8" />
-                </svg>
-                <p>
-                  These properties are not currently for sale but have exceptional solar potential.
-                  Contact owners to explore acquisition opportunities.
-                </p>
-              </div>
-            )}
 
             <div className="content-grid">
               <div className="properties-list">
-                <h2 className="section-title">{viewMode === 'for-sale' ? 'Available Properties' : 'High-Potential Opportunities'}</h2>
+                <h2 className="section-title">{viewMode === 'for-sale'? 'Available Properties': viewMode === 'forecast'? 'Renewable Energy Forecast': ''}</h2>
                 <div className="property-cards">
                   {pagedProperties.map(property => (
                     <div
@@ -402,7 +471,7 @@ const getSuitabilityLabel = (score: number) => {
                             <line x1="12" y1="1" x2="12" y2="3" />
                           </svg>
                           <span className="metric-label">Sun</span>
-                          <span className="metric-value">{property.sunlightHours}h</span>
+                          <span className="metric-value">{property.sunIrradiation} W/m²</span>
                         </div>
                         <div className="metric">
                           <svg
@@ -417,7 +486,7 @@ const getSuitabilityLabel = (score: number) => {
                             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                           </svg>
                           <span className="metric-label">Grid</span>
-                          <span className="metric-value">{property.gridDistance}km</span>
+                          <span className="metric-value">{property.gridDistance} km</span>
                         </div>
                       </div>
 
@@ -523,12 +592,12 @@ const getSuitabilityLabel = (score: number) => {
                         className="btn btn--outline btn--sm"
                         onClick={() => setShowMonthlySunlight(!showMonthlySunlight)}
                       >
-                        {showMonthlySunlight ? 'Hide' : 'Show'} Monthly Sunlight Hours
+                        {showMonthlySunlight ? 'Hide' : 'Show'} Monthly Sunlight Radiation
                       </button>
 
                       {showMonthlySunlight && (
                         <div className="monthly-sunlight-details">
-                          <h4>Average Monthly Sunlight (kWh/m²/day)</h4>
+                          <h4>Average Monthly Sunlight Radiation (kWh/m²/day)</h4>
                           <ul>
                             {selectedProperty && Object.entries({
                               Jan: selectedProperty.ghi_jan,
@@ -601,27 +670,27 @@ const getSuitabilityLabel = (score: number) => {
                             <span>Sunlight Exposure</span>
                             <span
                               className={
-                                selectedProperty.sunlightHours !== undefined && selectedProperty.sunlightHours >= 8
+                                selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 15
                                   ? 'status status--success'
                                   : 'status status--warning'
                               }
                             >
-                              {selectedProperty.sunlightHours !== undefined && selectedProperty.sunlightHours >= 8 ? 'Excellent' : 'Good'}
+                              {selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 15 ? 'Excellent' : 'Good'}
                             </span>
                           </div>
                           <div className="progress-bar">
                             <div
                               className="progress-fill"
                               style={{
-                                width: `${((selectedProperty.sunlightHours ?? 0) / 12) * 100}%`,
+                                width: `${((selectedProperty.sunIrradiation ?? 0) / 12) * 100}%`,
                                 backgroundColor:
-                                  selectedProperty.sunlightHours !== undefined && selectedProperty.sunlightHours >= 8
+                                  selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 15
                                     ? 'var(--color-success)'
                                     : 'var(--color-warning)'
                               }}
                             />
                           </div>
-                          <p className="criteria-note">{selectedProperty.sunlightHours} hours daily average</p>
+                          <p className="criteria-note">{selectedProperty.sunIrradiation} W/m² daily average</p>
                         </div>
 
                         <div className="criteria-item">
@@ -629,21 +698,21 @@ const getSuitabilityLabel = (score: number) => {
                             <span>Grid Proximity</span>
                             <span
                               className={
-                                selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 2
+                                selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5
                                   ? 'status status--success'
                                   : 'status status--warning'
                               }
                             >
-                              {selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 2 ? 'Optimal' : 'Good'}
+                              {selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5 ? 'Optimal' : 'Good'}
                             </span>
                           </div>
                           <div className="progress-bar">
                             <div
                               className="progress-fill"
                               style={{
-                                width: `${Math.max(0, 100 - ((selectedProperty.gridDistance ?? 0) * 20))}%`,
+                                width: `${Math.max(0, 100 - ((selectedProperty.gridDistance ?? 0) * 8))}%`,
                                 backgroundColor:
-                                  selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 2
+                                  selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5
                                     ? 'var(--color-success)'
                                     : 'var(--color-warning)'
                               }}
@@ -740,7 +809,7 @@ const getSuitabilityLabel = (score: number) => {
                         </div>
                         <div className="popup-details">
                           <span>{property.acres} acres</span>
-                          <span>{property.sunlightHours}h sun</span>
+                          <span>{property.sunIrradiation}W/m² sun</span>
                         </div>
                         <div className="popup-price">{property.forSale ? property.price : property.estimatedValue}</div>
                         {!property.forSale && (
