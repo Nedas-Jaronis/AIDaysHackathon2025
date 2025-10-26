@@ -80,6 +80,10 @@ function App() {
   const [hoveredProperty, setHoveredProperty] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [showMonthlySunlight, setShowMonthlySunlight] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+
+
 
 
 useEffect(() => {
@@ -155,6 +159,8 @@ const getSuitabilityLabel = (score: number) => {
   const forSaleProperties = properties.filter(p => p.forSale)
   const notForSaleProperties = properties.filter(p => !p.forSale)
 
+
+
   const sortedForSale = [...forSaleProperties].sort((a, b) => {
     if (sortBy === 'score') return b.suitabilityScore - a.suitabilityScore
     if (sortBy === 'acres') return b.acres - a.acres
@@ -172,6 +178,11 @@ const getSuitabilityLabel = (score: number) => {
   )
 
   const currentProperties = viewMode === 'for-sale' ? sortedForSale : sortedNotForSale
+  const filteredProperties = searchQuery.trim() === ''
+    ? currentProperties
+    : currentProperties.filter(p =>
+        p.name?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
 
   return (
     <div className="app">
@@ -223,7 +234,7 @@ const getSuitabilityLabel = (score: number) => {
             </svg>
             For Sale
           </button>
-          <button className={`tab-button ${viewMode === 'opportunities' ? 'active' : ''}`} onClick={() => setViewMode('opportunities')}>
+          {/* <button className={`tab-button ${viewMode === 'opportunities' ? 'active' : ''}`} onClick={() => setViewMode('opportunities')}>
             <svg
               width="18"
               height="18"
@@ -236,7 +247,7 @@ const getSuitabilityLabel = (score: number) => {
               <path d="M12 6v6l4 2" />
             </svg>
             Opportunities
-          </button>
+          </button> */}
           <button className={`tab-button ${viewMode === 'map' ? 'active' : ''}`} onClick={() => setViewMode('map')}>
             <svg
               width="18"
@@ -262,7 +273,13 @@ const getSuitabilityLabel = (score: number) => {
                   <circle cx="11" cy="11" r="8" />
                   <path d="m21 21-4.35-4.35" />
                 </svg>
-                <input type="text" placeholder="Search by location or property name..." className="form-control" />
+                <input
+                  type="text"
+                  placeholder="Search by location or property name..."
+                  className="form-control"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
               </div>
               {viewMode === 'for-sale' && (
                 <div className="sort-controls">
@@ -294,7 +311,7 @@ const getSuitabilityLabel = (score: number) => {
               <div className="properties-list">
                 <h2 className="section-title">{viewMode === 'for-sale' ? 'Available Properties' : 'High-Potential Opportunities'}</h2>
                 <div className="property-cards">
-                  {currentProperties.map(property => (
+                  {filteredProperties.map(property => (
                     <div
                       key={property.id}
                       className={`property-card ${
