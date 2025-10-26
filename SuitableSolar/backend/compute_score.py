@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 
+
 def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
     """
     Compute a Solar Suitability Score (0–100) for each property
@@ -30,7 +31,8 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
 
         # 1️⃣ Irradiance Strength (normalized)
         irradiance = (row["Annual_GHI"] + row["Annual_Tilt_Latitude"]) / 2
-        normalized_irr = (irradiance - min_ghi) / (max_ghi - min_ghi) if max_ghi != min_ghi else 1
+        normalized_irr = (irradiance - min_ghi) / \
+            (max_ghi - min_ghi) if max_ghi != min_ghi else 1
 
         # 2️⃣ Seasonal Stability
         mean_ghi = np.mean(months)
@@ -42,16 +44,19 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
 
         # 4️⃣ Tilt Factor
         optimal_tilt = abs(row["Latitude"])
-        tilt_factor = 1 - (abs(row["tilt_deg"] - optimal_tilt) / 90)  # scaled 0-1
+        tilt_factor = 1 - (abs(row["tilt_deg"] - optimal_tilt) / 90)
 
         # 5️⃣ Substation Distance Factor
-        distance_factor = 1 - (row["nearest_substation_km"] / max_distance) if max_distance != 0 else 1
+        distance_factor = 1 - \
+            (row["nearest_substation_km"] /
+             max_distance) if max_distance != 0 else 1
 
         # 6️⃣ Land Size Factor
         size_factor = row["acres"] / max_acres if max_acres != 0 else 1
 
         # 7️⃣ Price Factor (inverse, cheaper is better)
-        price_factor = 1 - ((row["price"] - min_price) / (max_price - min_price)) if max_price != min_price else 1
+        price_factor = 1 - ((row["price"] - min_price) /
+                            (max_price - min_price)) if max_price != min_price else 1
 
         # Combine (weighted)
         score = ((normalized_irr * 0.25) +      # 25%

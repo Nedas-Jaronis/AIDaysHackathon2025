@@ -1,2 +1,2 @@
 DATABASE = "locations.db"
-CSV_FILE = "test.csv"
+CSV_FILE = "data/final_dataset.csv"
