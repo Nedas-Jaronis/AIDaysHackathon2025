@@ -1,7 +1,3 @@
-import { BrowserRouter, Routes, Route, Link, useLocation, Outlet } from "react-router-dom"
-import { ForSalePage } from "../pages/ForSalePage"
-import { OpportunitiesPage } from "../pages/OpportunitiesPage"
-import { MapPage } from "../pages/MapPage"
 import { useProperties } from "../hooks/useProperties"
 
 import Tabs from "../components/Tabs"
