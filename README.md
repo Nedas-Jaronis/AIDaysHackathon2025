@@ -30,7 +30,14 @@ This section contains instructions on cloning and running this repository.
     uvicorn main:app --reload
     ```
 
-3. Start the frontend
+3. `server.py` will prompt you to enter a state abbreviation and the number of years to forecast in the future. Enter the desired values and continue. The example below models California's power usage over the next 20 years.
+
+    ```plain
+    CA
+    20
+    ```
+
+4. Start the frontend
 
     ```shell
     cd SuitableSolar/src/
@@ -38,4 +45,4 @@ This section contains instructions on cloning and running this repository.
     npm run dev
     ```
 
-4. Open the website at http://localhost:5173
+5. Open the website at http://localhost:5173
