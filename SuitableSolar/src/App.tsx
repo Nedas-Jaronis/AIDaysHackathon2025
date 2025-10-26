@@ -4,6 +4,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.heat'
 import './App.css'
+import ForecastHeatmaps from './components/heatMap'
 
 export interface Property {
   id: number
@@ -84,10 +85,10 @@ function App() {
   const [page, setPage] = useState(1);
   const pageSize = 5;
   const [forecastState, setForecastState] = useState('')
-  const [forecastYears, setForecastYears] = useState()
   const [forecastData, setForecastData] = useState<any | null>(null)
   const [forecastLoading, setForecastLoading] = useState(false)
   const [forecastError, setForecastError] = useState<string | null>(null)
+  const [forecastYears, setForecastYears] = useState(2023);
   
   
   const fetchForecast = () => {
@@ -296,67 +297,58 @@ const getSuitabilityLabel = (score: number) => {
             Forecast
           </button>
         </div>
+        
 
        {viewMode === 'forecast' && (
-        <div className="forecast-view">
-          <div className="forecast-map">
-            <MapContainer
-                    center={[35.5, -110.0]}
-                    zoom={6}
-                    style={{ height: '100%', width: '100%' }}
-                    scrollWheelZoom={true}
-                    attributionControl={false}
-            >
-                <TileLayer
-                  attribution='&copy; OpenStreetMap contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-              </MapContainer>
-          </div>
-          <div className="forecast-sidebar">
-            <h2>Renewable Energy Forecast</h2>
-            <label style={{ display: 'block', marginBottom: '1rem' }}>
-              State Abbreviation:
-              <input
-                type="text"
-                value={forecastState}
-                onChange={e => setForecastState(e.target.value.toUpperCase())}
-                onKeyDown={handleForecastKeyDown}
-                maxLength={2}
-                placeholder=""
-                style={{ display: 'block', marginTop: '0.25rem', width: '100%' }}
-              />
-            </label>
+<div className="forecast-view">
+  <div className="forecast-map">
+    <ForecastHeatmaps selectedYear={forecastYears} />
+  </div>
+    <div className="forecast-sidebar" style={{ width: 350, padding: 20 }}>
+      <h2>Renewable Energy Forecast</h2>
+      <label style={{ display: 'block', marginBottom: '1rem' }}>
+        State Abbreviation:
+        <input
+          type="text"
+          value={forecastState}
+          onChange={e => setForecastState(e.target.value.toUpperCase())}
+          onKeyDown={handleForecastKeyDown}
+          maxLength={2}
+          placeholder=""
+          style={{ display: 'block', marginTop: '0.25rem', width: '100%' }}
+        />
+      </label>
 
-            <label style={{ display: 'block', marginBottom: '1rem' }}>
-              Years Ahead:
-              <input
-                type="number"
-                value={forecastYears}
-                onChange={e => setForecastYears(Number(e.target.value))}
-                onKeyDown={handleForecastKeyDown}
-                min={1}
-                max={100}
-                placeholder=""
-                style={{ display: 'block', marginTop: '0.25rem', width: '100%' }}
-              />
-            </label>
+      <label style={{ display: 'block', marginBottom: '1rem' }}>
+        Years Ahead:
+        <input
+          type="number"
+          value={forecastYears}
+          onChange={e => setForecastYears(Number(e.target.value))}
+          onKeyDown={handleForecastKeyDown}
+          min={1}
+          max={100}
+          placeholder=""
+          style={{ display: 'block', marginTop: '0.25rem', width: '100%' }}
+        />
+      </label>
 
-            <button onClick={fetchForecast}>Get Forecast</button>
+      <button onClick={fetchForecast}>Get Forecast</button>
 
-            {forecastLoading && <p>Loading forecast...</p>}
-            {forecastError && <p style={{ color: 'red' }}>{forecastError}</p>}
+      {forecastLoading && <p>Loading forecast...</p>}
+      {forecastError && <p style={{ color: 'red' }}>{forecastError}</p>}
 
-            {forecastData && (
-              <>
-                <p>Current percent renewable: {forecastData.current_percent_renewable.toFixed(2)}%</p>
-                <p>Predicted avg percent renewable over next {forecastYears} years: {forecastData.average_forecast_percent_renewable.toFixed(2)}%</p>
-                <p>Predicted avg increase in renewable over next {forecastYears} years: {forecastData.predicted_increase.toFixed(2)}%</p>
-              </>
-            )}
-          </div>
-        </div>
+      {forecastData && (
+        <>
+          <p>Current percent renewable: {forecastData.current_percent_renewable.toFixed(2)}%</p>
+          <p>Predicted avg percent renewable over next {forecastYears} years: {forecastData.average_forecast_percent_renewable.toFixed(2)}%</p>
+          <p>Predicted avg increase in renewable over next {forecastYears} years: {forecastData.predicted_increase.toFixed(2)}%</p>
+        </>
       )}
+    </div>
+  </div>
+)}
+
 
 
       {viewMode !== 'forecast' && (

@@ -979,9 +979,7 @@ body {
     grid-template-columns: 1fr;
   }
 }
-/* Add to the END of your existing App.css */
 
-/* Leaflet overrides */
 .leaflet-container {
   font-family: var(--font-family-base);
   background: var(--color-background);
@@ -1391,12 +1389,12 @@ body {
 }
 
 
-.forecast-map svg,
+/* .forecast-map svg,
 .forecast-map > div {
   width: 100%;
   height: 100%;
   display: block;
-}
+} */
 
 .forecast-sidebar {
   display: flex;
