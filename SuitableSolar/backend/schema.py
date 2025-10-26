@@ -3,7 +3,8 @@ import sqlite3
 from pathlib import Path
 from CONSTANTS import DATABASE
 
-DB_PATH = Path(__file__).with_name(DATABASE)
+BASE_DIR = Path(__file__).parent
+DB_PATH = BASE_DIR / "data" / "locations.db"
 
 DDL = """
 PRAGMA foreign_keys = ON;

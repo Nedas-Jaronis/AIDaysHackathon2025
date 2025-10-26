@@ -5,8 +5,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 from CONSTANTS import *
 
-DB_PATH = Path(__file__).with_name(DATABASE)
-CSV_FILE = Path(__file__).with_name(CSV_FILE)
+DB_PATH = DATABASE
+BASE_DIR = Path(__file__).resolve().parent
+CSV_FILE = BASE_DIR / "data" / "final_dataset.csv"
+CSV_FILE = Path(CSV_FILE)
 
 # Known columns (in table). Extra CSV columns are ignored gracefully.
 TABLE_COLS = [

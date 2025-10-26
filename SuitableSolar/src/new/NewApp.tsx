@@ -1,4 +1,5 @@
 import { useProperties } from "../hooks/useProperties"
+import {Outlet} from "react-router-dom"
 
 import Tabs from "../components/Tabs"
 
