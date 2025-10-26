@@ -38,11 +38,10 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
         lat_factor = 1 - (abs(row["Latitude"]) / 90) * 0.3
 
         # 4️⃣ Tilt Factor
-        optimal_tilt = abs(row["Latitude"])
-        tilt_factor = 1 - (abs(row["tilt_deg"] - optimal_tilt) / 90)
+        tilt_factor = np.exp(-abs(row["tilt_deg"]) / 10)
 
         # 5️⃣ Substation Distance Factor
-        distance_factor = 1 - (row["nearest_substation_km"] / max_distance) if max_distance != 0 else 1
+        distance_factor = np.exp(-row["nearest_substation_km"] / 15)
 
         # 6️⃣ Land Value Efficiency (acres per price)
         value_efficiency = row["acres"] / row["price"] if row["price"] > 0 else 0
@@ -50,11 +49,11 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
 
         # Combine (weighted)
         score = ((normalized_irr * 0.25) +      # 25%
-                 (stability * 0.15) +           # 15%
-                 (lat_factor * 0.1) +           # 10%
-                 (tilt_factor * 0.1) +          # 10%
-                 (distance_factor * 0.15) +     # 15%
-                 (value_factor * 0.25)) * 100   # 25%
+                 (stability * 0.10) +           # 10%
+                 (lat_factor * 0.20) +           # 20%
+                 (tilt_factor * 0.15) +          # 15%
+                 (distance_factor * 0.10) +     # 10%
+                 (value_factor * 0.20)) * 100   # 20%
 
         scores.append(np.clip(score, 0, 100))
 
@@ -66,4 +65,4 @@ if __name__ == "__main__":
     df = pd.read_csv("backend/data/final_dataset.csv")
     df = compute_solar_suitability(df)
     df.to_csv("backend/data/final_dataset.csv", index=False)
-    print("✅ Solar Suitability Scores updated with land value efficiency (acres per price).")
+    print("✅ Solar Suitability Scores updated")
