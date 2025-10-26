@@ -1,5 +1,7 @@
 import type { Property } from "../types/Property"
 import "../App.css"
+import { getSuitabilityColor, getSuitabilityLabel } from "./Suitability"
+
 
 interface Props {
   property: Property
@@ -8,18 +10,7 @@ interface Props {
 }
 
 export function PropertyCard({ property, selected, onSelect }: Props) {
-  const getSuitabilityColor = (score: number) => {
-    if (score >= 90) return 'var(--color-success)'
-    if (score >= 75) return 'var(--color-warning)'
-    return 'var(--color-error)'
-  }
 
-  const getSuitabilityLabel = (score: number) => {
-    if (score >= 90) return 'Excellent'
-    if (score >= 75) return 'Good'
-    if (score >= 60) return 'Fair'
-    return 'Poor'
-  }
 
   return (
 <div
