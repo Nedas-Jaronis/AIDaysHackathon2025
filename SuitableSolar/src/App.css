@@ -53,10 +53,10 @@
   --color-select-caret: rgba(var(--color-slate-900-rgb), 0.8);
 
 
-  --color-success: #007B5F;
-  --color-warning: #F59E0B;
-  --color-info: #3B82F6;
-  --color-error: #EF4444;
+    --color-success: #007B5F;
+    --color-warning: #ffea2b;
+    --color-info: #ff8902;
+    --color-error: #EF4444;
 
   --color-success-rgb: 0, 123, 95;
   --color-warning-rgb: 245, 158, 11;
@@ -140,8 +140,8 @@
     --color-card-border-inner: rgba(var(--color-gray-400-rgb), 0.15);
 
     --color-success: #007B5F;
-    --color-warning: #F59E0B;
-    --color-info: #3B82F6;
+    --color-warning: #ffea2b;
+    --color-info: #ff8902;
     --color-error: #EF4444;
 
     --color-success-rgb: 0, 123, 95;

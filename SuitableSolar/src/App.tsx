@@ -81,6 +81,9 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [showMonthlySunlight, setShowMonthlySunlight] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
+  
 
 
 
@@ -165,7 +168,6 @@ const getSuitabilityLabel = (score: number) => {
     if (sortBy === 'score') return b.suitabilityScore - a.suitabilityScore
     if (sortBy === 'acres') return b.acres - a.acres
     if (sortBy === 'price') {
-      // Extract number from price string for sorting, fallback 0
       const priceA = Number(a.price.replace(/[^0-9.-]+/g, '')) || 0
       const priceB = Number(b.price.replace(/[^0-9.-]+/g, '')) || 0
       return priceB - priceA
@@ -178,11 +180,17 @@ const getSuitabilityLabel = (score: number) => {
   )
 
   const currentProperties = viewMode === 'for-sale' ? sortedForSale : sortedNotForSale
+
+
+  
   const filteredProperties = searchQuery.trim() === ''
     ? currentProperties
     : currentProperties.filter(p =>
         p.name?.toLowerCase().includes(searchQuery.toLowerCase())
       )
+  
+  const maxPage = Math.ceil(filteredProperties.length / pageSize);
+  const pagedProperties = filteredProperties.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="app">
@@ -311,7 +319,7 @@ const getSuitabilityLabel = (score: number) => {
               <div className="properties-list">
                 <h2 className="section-title">{viewMode === 'for-sale' ? 'Available Properties' : 'High-Potential Opportunities'}</h2>
                 <div className="property-cards">
-                  {filteredProperties.map(property => (
+                  {pagedProperties.map(property => (
                     <div
                       key={property.id}
                       className={`property-card ${
@@ -442,6 +450,24 @@ const getSuitabilityLabel = (score: number) => {
                     </div>
                   ))}
                 </div>
+                              {viewMode === 'for-sale' && maxPage > 1 && (
+                <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+                  <button
+                    className="btn btn--primary btn--sm"
+                    onClick={() => setPage(page => Math.max(page - 1, 1))}
+                    disabled={page === 1}
+                  >
+                    Previous
+                  </button>
+                  <button
+                    className="btn btn--primary btn--sm"
+                    onClick={() => setPage(page => Math.min(page + 1, maxPage))}
+                    disabled={page === maxPage}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
               </div>
 
               <div className="details-panel">
