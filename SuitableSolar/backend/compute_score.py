@@ -5,7 +5,7 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
     """
     Compute a Solar Suitability Score (0–100) for each property
     using irradiance strength, seasonal stability, latitude adjustment,
-    tilt of the land, and proximity to the nearest substation.
+    tilt of the land, proximity to the nearest substation, land size, and price.
     """
 
     # Ensure column names are stripped of spaces
@@ -15,6 +15,9 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
     min_ghi = df["Annual_GHI"].min()
     max_ghi = df["Annual_GHI"].max()
     max_distance = df["nearest_substation_km"].max()
+    min_price = df["price"].min()
+    max_price = df["price"].max()
+    max_acres = df["acres"].max()
 
     scores = []
 
@@ -44,12 +47,20 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
         # 5️⃣ Substation Distance Factor
         distance_factor = 1 - (row["nearest_substation_km"] / max_distance) if max_distance != 0 else 1
 
+        # 6️⃣ Land Size Factor
+        size_factor = row["acres"] / max_acres if max_acres != 0 else 1
+
+        # 7️⃣ Price Factor (inverse, cheaper is better)
+        price_factor = 1 - ((row["price"] - min_price) / (max_price - min_price)) if max_price != min_price else 1
+
         # Combine (weighted)
-        score = ((normalized_irr * 0.4) +      # 40%
-                 (stability * 0.2) +           # 20%
-                 (lat_factor * 0.1) +          # 10%
-                 (tilt_factor * 0.15) +        # 15%
-                 (distance_factor * 0.15)) * 100  # 15%
+        score = ((normalized_irr * 0.25) +      # 25%
+                 (stability * 0.15) +           # 15%
+                 (lat_factor * 0.1) +           # 10%
+                 (tilt_factor * 0.1) +          # 10%
+                 (distance_factor * 0.1) +      # 10%
+                 (size_factor * 0.15) +         # 15%
+                 (price_factor * 0.15)) * 100   # 15%
 
         scores.append(np.clip(score, 0, 100))
 
@@ -59,13 +70,13 @@ def compute_solar_suitability(df: pd.DataFrame) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    # Load original CSV (with tilt_deg and nearest_substation_km already included)
+    # Load original CSV (with tilt_deg, nearest_substation_km, acres, price)
     df = pd.read_csv("backend/data/final_dataset.csv")
 
     # Compute and append scores
     df = compute_solar_suitability(df)
 
-    # Save back to the same CSV or a new one
+    # Save back to the CSV
     df.to_csv("backend/data/final_dataset.csv", index=False)
 
-    print("✅ Solar Suitability Scores added to CSV.")
+    print("✅ Solar Suitability Scores updated with price and land size.")
