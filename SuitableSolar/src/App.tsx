@@ -670,21 +670,21 @@ const getSuitabilityLabel = (score: number) => {
                             <span>Sunlight Exposure</span>
                             <span
                               className={
-                                selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 15
+                                selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 5
                                   ? 'status status--success'
                                   : 'status status--warning'
                               }
                             >
-                              {selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 15 ? 'Excellent' : 'Good'}
+                              {selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 5 ? 'Excellent' : 'Good'}
                             </span>
                           </div>
                           <div className="progress-bar">
                             <div
                               className="progress-fill"
                               style={{
-                                width: `${((selectedProperty.sunIrradiation ?? 0) / 12) * 100}%`,
+                                width: `${Math.max(0, Math.min(((selectedProperty.sunIrradiation ?? 0) - 4) / 2, 1) * 100)}%`,
                                 backgroundColor:
-                                  selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 15
+                                  selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 5
                                     ? 'var(--color-success)'
                                     : 'var(--color-warning)'
                               }}
