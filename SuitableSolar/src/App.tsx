@@ -1,7 +1,9 @@
-import { Routes, Route, Outlet, Navigate, NavLink } from "react-router-dom";
+import { Routes, Route, Outlet } from "react-router-dom";
 import {ForSalePage} from "./pages/ForSalePage";
 import {OpportunitiesPage} from "./pages/OpportunitiesPage";
 import {MapPage} from "./pages/MapPage";
+
+import OldApp from "./old/OldApp.tsx"
 
 import Tabs from "./components/Tabs"
 
@@ -49,7 +51,7 @@ export default function App() {
         <Route path="for-sale" element={<ForSalePage />} />
         <Route path="opportunities" element={<OpportunitiesPage />} />
         <Route path="map" element={<MapPage />} />
-        <Route path="*" element={<Navigate to="/for-sale" replace />} />
+        <Route path="old" element={<OldApp/>}/>
       </Route>
     </Routes>
   );
