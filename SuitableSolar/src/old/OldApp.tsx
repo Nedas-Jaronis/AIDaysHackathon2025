@@ -235,7 +235,7 @@ function HeatmapLayer({ properties }: { properties: Property[] }) {
   return null
 }
 
-function App() {
+export default function App() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [sortBy, setSortBy] = useState<'score' | 'price' | 'acres'>('score')
   const [viewMode, setViewMode] = useState<ViewMode>('for-sale')
@@ -787,5 +787,3 @@ function App() {
     </div>
   )
 }
-
-export default App

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Link, useLocation, Outlet } from "react-router-dom"
 import { ForSalePage } from "../pages/ForSalePage"
 import { OpportunitiesPage } from "../pages/OpportunitiesPage"
 import { MapPage } from "../pages/MapPage"
@@ -90,13 +90,7 @@ export default function App() {
 
         <main className="main-content">
           <Tabs />
-          <Routes>
-            <Route path="/for-sale" element={<ForSalePage />} />
-            <Route path="/opportunities" element={<OpportunitiesPage />} />
-            <Route path="/map" element={<MapPage />} />
-            {/* Default route */}
-            <Route path="*" element={<ForSalePage />} />
-          </Routes>
+          <Outlet />
         </main>
       </div>
     //</BrowserRouter>
