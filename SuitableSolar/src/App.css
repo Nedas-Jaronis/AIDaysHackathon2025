@@ -1282,3 +1282,22 @@ body {
   color: var(--color-text-secondary);
   line-height: 1.5;
 }
+
+.scrollable-panel {
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;       /* vertical scroll only */
+  padding-right: 8px;     /* avoid scrollbar overlap on text */
+}
+
+.scrollable-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollable-panel::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.25);
+  border-radius: 4px;
+}
+
+.scrollable-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.4);
+}
