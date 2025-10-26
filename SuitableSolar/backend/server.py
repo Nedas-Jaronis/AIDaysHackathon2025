@@ -12,6 +12,9 @@ from fastapi.responses import JSONResponse
 from fastapi.exception_handlers import RequestValidationError
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import NearestNeighbors
+import numpy as np
 
 DB_PATH = Path(__file__).parent / "locations.db"
 
@@ -239,3 +242,68 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         status_code=422,
         content={"detail": exc.errors()},
     )
+
+
+@app.get("/similar-properties/{property_id}")
+def get_similar_properties(property_id: int, k: int = 3):
+    try:
+        # Get all properties
+        properties = fetch_properties()
+
+        # Find the target property
+        target_property = None
+        for p in properties:
+            if p.id == property_id:
+                target_property = p
+                break
+
+        if not target_property:
+            raise HTTPException(status_code=404, detail="Property not found")
+
+        # Prepare features for all properties
+        feature_cols = ['latitude', 'longitude', 'annual_ghi', 'annual_dni',
+                        'annual_tilt_latitude', 'nearest_substation_km']
+
+        # Build feature matrix
+        X = []
+        valid_properties = []
+        for p in properties:
+            if p.id == property_id:
+                continue  # Skip the target property itself
+            if all([getattr(p, col) is not None for col in feature_cols]):
+                X.append([getattr(p, col) for col in feature_cols])
+                valid_properties.append(p)
+
+        if len(X) < k:
+            raise HTTPException(
+                status_code=400, detail="Not enough properties for comparison")
+
+        X = np.array(X)
+
+        # Normalize features
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+
+        # Prepare query features
+        query_features = np.array(
+            [[getattr(target_property, col) for col in feature_cols]])
+        query_scaled = scaler.transform(query_features)
+
+        # Find k nearest neighbors
+        knn = NearestNeighbors(n_neighbors=k, metric='euclidean')
+        knn.fit(X_scaled)
+        distances, indices = knn.kneighbors(query_scaled)
+
+        # Return similar properties
+        similar = []
+        for idx, dist in zip(indices[0], distances[0]):
+            prop = valid_properties[idx]
+            similar.append({
+                "property": prop,
+                "similarity_distance": float(dist)
+            })
+
+        return similar
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

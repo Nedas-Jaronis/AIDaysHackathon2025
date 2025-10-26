@@ -4,6 +4,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.heat'
 import './App.css'
+import React from 'react';
 import ForecastHeatmaps from './components/heatMap'
 
 export interface Property {
@@ -91,6 +92,11 @@ function App() {
   const [forecastError, setForecastError] = useState<string | null>(null)
   const [forecastYearsAhead, setForecastYearsAhead] = useState(5);
   const [displayYear, setDisplayYear] = useState(2023);
+  const [similarProperties, setSimilarProperties] = useState<Property[]>([]);
+  const [loadingSimilar, setLoadingSimilar] = useState(false);
+  const propertyDetailsRef = React.useRef<HTMLDivElement>(null);
+
+
   
   
 const fetchForecast = () => {
@@ -179,6 +185,43 @@ useEffect(() => {
   setLoading(false)
 });
 }, [])
+
+// Add this RIGHT AFTER the existing useEffect that fetches properties
+useEffect(() => {
+  if (selectedProperty && viewMode !== 'forecast') {
+    setLoadingSimilar(true)
+    fetch(`http://localhost:8000/similar-properties/${selectedProperty.id}?k=3`)
+      .then(res => res.json())
+      .then(data => {
+        const similarProps = data.map((item: any) => {
+          const p = item.property
+          const numericPrice = p.price ? Number(p.price.toString().replace(/[^0-9.-]+/g, '')) : 0
+          const acres = p.acres ?? 0
+          return {
+            id: p.id,
+            name: p.address,
+            location: p.address,
+            acres: acres,
+            slope: p.tilt_deg !== undefined ? Number(p.tilt_deg.toFixed(2)) : 0,
+            sunIrradiation: p.annual_ghi !== undefined ? Number(p.annual_ghi.toFixed(2)) : 0,
+            gridDistance: p.nearest_substation_km !== undefined ? Number(p.nearest_substation_km.toFixed(2)) : 0,
+            suitabilityScore: Math.ceil(p.solar_score ?? 0),
+            price: p.price ? `$${numericPrice.toLocaleString()}` : 'N/A',
+            forSale: p.for_sale ?? true,
+            coordinates: { lat: p.latitude, lng: p.longitude },
+            acrePrice: acres > 0 ? Number((numericPrice / acres).toFixed(2)) : 0,
+          }
+        })
+        setSimilarProperties(similarProps)
+        setLoadingSimilar(false)
+      })
+      .catch(err => {
+        console.error('Error fetching similar properties:', err)
+        setSimilarProperties([])
+        setLoadingSimilar(false)
+      })
+  }
+}, [selectedProperty, viewMode])
 
 
 const getSuitabilityColor = (score: number) => {
@@ -569,244 +612,331 @@ const getSuitabilityLabel = (score: number) => {
 
               </div>
 
-              <div className="details-panel">
-                {selectedProperty ? (
-                  <div className="property-details">
-                    <h2 className="section-title">Property Details</h2>
-                    <div className="detail-card">
-                      <h3>{selectedProperty.name}</h3>
-                      {!selectedProperty.forSale && (
-                        <span
-                          className="status status--warning"
-                          style={{ marginBottom: 'var(--space-12)', display: 'inline-block' }}
-                        >
-                          Not Currently For Sale
-                        </span>
-                      )}
-                      <div className="detail-row">
-                        <span className="detail-label">Location</span>
-                        <span className="detail-value">{selectedProperty.location}</span>
-                      </div>
-                      <div className="detail-row">
-                        <span className="detail-label">Coordinates</span>
-                        <span className="detail-value">
-                          {selectedProperty.coordinates.lat.toFixed(4)},{' '}
-                          {selectedProperty.coordinates.lng.toFixed(4)}
-                        </span>
-                      </div>
-                      <div className="detail-row">
-                        <span className="detail-label">Total Acreage</span>
-                        <span className="detail-value">{selectedProperty.acres} acres</span>
-                      </div>
-                      {selectedProperty.owner && (
-                        <div className="detail-row">
-                          <span className="detail-label">Current Owner</span>
-                          <span className="detail-value">{selectedProperty.owner}</span>
-                        </div>
-                      )}
-                      <div className="detail-row">
-                        <span className="detail-label">
-                          {selectedProperty.forSale ? 'Price' : 'Estimated Value'}
-                        </span>
-                        <span className="detail-value">
-                          {selectedProperty.forSale ? selectedProperty.price : selectedProperty.estimatedValue}
-                        </span>
-                      </div>
-                      <button
-                        className="btn btn--outline btn--sm"
-                        onClick={() => setShowMonthlySunlight(!showMonthlySunlight)}
-                      >
-                        {showMonthlySunlight ? 'Hide' : 'Show'} Monthly Sunlight Radiation
-                      </button>
+  <div className="details-panel" ref={propertyDetailsRef}>
+  {selectedProperty ? (
+    <div className="property-details">
+      <h2 className="section-title">Property Details</h2>
+      <div className="detail-card">
+        <h3>{selectedProperty.name}</h3>
+        {!selectedProperty.forSale && (
+          <span
+            className="status status--warning"
+            style={{ marginBottom: 'var(--space-12)', display: 'inline-block' }}
+          >
+            Not Currently For Sale
+          </span>
+        )}
+        <div className="detail-row">
+          <span className="detail-label">Location</span>
+          <span className="detail-value">{selectedProperty.location}</span>
+        </div>
+        <div className="detail-row">
+          <span className="detail-label">Coordinates</span>
+          <span className="detail-value">
+            {selectedProperty.coordinates.lat.toFixed(4)},{' '}
+            {selectedProperty.coordinates.lng.toFixed(4)}
+          </span>
+        </div>
+        <div className="detail-row">
+          <span className="detail-label">Total Acreage</span>
+          <span className="detail-value">{selectedProperty.acres} acres</span>
+        </div>
+        {selectedProperty.owner && (
+          <div className="detail-row">
+            <span className="detail-label">Current Owner</span>
+            <span className="detail-value">{selectedProperty.owner}</span>
+          </div>
+        )}
+        <div className="detail-row">
+          <span className="detail-label">
+            {selectedProperty.forSale ? 'Price' : 'Estimated Value'}
+          </span>
+          <span className="detail-value">
+            {selectedProperty.forSale ? selectedProperty.price : selectedProperty.estimatedValue}
+          </span>
+        </div>
+        <button
+          className="btn btn--outline btn--sm"
+          onClick={() => setShowMonthlySunlight(!showMonthlySunlight)}
+        >
+          {showMonthlySunlight ? 'Hide' : 'Show'} Monthly Sunlight Radiation
+        </button>
 
-                      {showMonthlySunlight && (
-                        <div className="monthly-sunlight-details">
-                          <h4>Average Monthly Sunlight Radiation (kWh/m²/day)</h4>
-                          <ul>
-                            {selectedProperty && Object.entries({
-                              Jan: selectedProperty.ghi_jan,
-                              Feb: selectedProperty.ghi_feb,
-                              Mar: selectedProperty.ghi_mar,
-                              Apr: selectedProperty.ghi_apr,
-                              May: selectedProperty.ghi_may,
-                              Jun: selectedProperty.ghi_jun,
-                              Jul: selectedProperty.ghi_jul,
-                              Aug: selectedProperty.ghi_aug,
-                              Sep: selectedProperty.ghi_sep,
-                              Oct: selectedProperty.ghi_oct,
-                              Nov: selectedProperty.ghi_nov,
-                              Dec: selectedProperty.ghi_dec,
-                            }).map(([month, value]) => (
-                              <li key={month}>
-                                <strong>{month}:</strong> {value !== undefined ? value.toFixed(2) : 'N/A'}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
+        {showMonthlySunlight && (
+          <div className="monthly-sunlight-details">
+            <h4>Average Monthly Sunlight Radiation (kWh/m²/day)</h4>
+            <ul>
+              {selectedProperty && Object.entries({
+                Jan: selectedProperty.ghi_jan,
+                Feb: selectedProperty.ghi_feb,
+                Mar: selectedProperty.ghi_mar,
+                Apr: selectedProperty.ghi_apr,
+                May: selectedProperty.ghi_may,
+                Jun: selectedProperty.ghi_jun,
+                Jul: selectedProperty.ghi_jul,
+                Aug: selectedProperty.ghi_aug,
+                Sep: selectedProperty.ghi_sep,
+                Oct: selectedProperty.ghi_oct,
+                Nov: selectedProperty.ghi_nov,
+                Dec: selectedProperty.ghi_dec,
+              }).map(([month, value]) => (
+                <li key={month}>
+                  <strong>{month}:</strong> {value !== undefined ? value.toFixed(2) : 'N/A'}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
 
-                    <div className="detail-card">
-                      <h4>Solar Suitability Analysis</h4>
-                      <div className="suitability-score">
-                        <div
-                          className="score-circle"
-                          style={{ borderColor: getSuitabilityColor(selectedProperty.suitabilityScore) }}
-                        >
-                          <span className="score-number">{selectedProperty.suitabilityScore}</span>
-                          <span className="score-text">{getSuitabilityLabel(selectedProperty.suitabilityScore)}</span>
-                        </div>
-                      </div>
+      <div className="detail-card">
+        <h4>Solar Suitability Analysis</h4>
+        <div className="suitability-score">
+          <div
+            className="score-circle"
+            style={{ borderColor: getSuitabilityColor(selectedProperty.suitabilityScore) }}
+          >
+            <span className="score-number">{selectedProperty.suitabilityScore}</span>
+            <span className="score-text">{getSuitabilityLabel(selectedProperty.suitabilityScore)}</span>
+          </div>
+        </div>
 
-                      <div className="criteria-list">
-                        <div className="criteria-item">
-                          <div className="criteria-header">
-                            <span>Slope Analysis</span>
-                            <span
-                              className={
-                                selectedProperty.slope !== undefined && selectedProperty.slope >= 0 && selectedProperty.slope <= 5
-                                  ? 'status status--success'
-                                  : 'status status--warning'
-                              }
-                            >
-                              {selectedProperty.slope !== undefined && selectedProperty.slope >= 0 && selectedProperty.slope <= 5
-                                ? 'Optimal'
-                                : 'Acceptable'}
-                            </span>
-                          </div>
-                          <div className="progress-bar">
-                            <div
-                              className="progress-fill"
-                              style={{
-                                width: `${Math.max(0, 100 - (selectedProperty.slope ?? 0) * 10)}%`,
-                                backgroundColor:
-                                  selectedProperty.slope !== undefined && selectedProperty.slope >= 0 && selectedProperty.slope <= 5
-                                    ? 'var(--color-success)'
-                                    : 'var(--color-warning)'
-                              }}
-                            />
-                          </div>
-                          <p className="criteria-note">{selectedProperty.slope}° slope (ideal: &lt;5°)</p>
-                        </div>
-
-                        <div className="criteria-item">
-                          <div className="criteria-header">
-                            <span>Sunlight Exposure</span>
-                            <span
-                              className={
-                                selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 5
-                                  ? 'status status--success'
-                                  : 'status status--warning'
-                              }
-                            >
-                              {selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 5 ? 'Excellent' : 'Good'}
-                            </span>
-                          </div>
-                          <div className="progress-bar">
-                            <div
-                              className="progress-fill"
-                              style={{
-                                width: `${Math.max(0, Math.min(((selectedProperty.sunIrradiation ?? 0) - 4) / 2, 1) * 100)}%`,
-                                backgroundColor:
-                                  selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 5
-                                    ? 'var(--color-success)'
-                                    : 'var(--color-warning)'
-                              }}
-                            />
-                          </div>
-                          <p className="criteria-note">{selectedProperty.sunIrradiation} W/m² daily average</p>
-                        </div>
-
-                        <div className="criteria-item">
-                          <div className="criteria-header">
-                            <span>Grid Proximity</span>
-                            <span
-                              className={
-                                selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5
-                                  ? 'status status--success'
-                                  : 'status status--warning'
-                              }
-                            >
-                              {selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5 ? 'Optimal' : 'Good'}
-                            </span>
-                          </div>
-                          <div className="progress-bar">
-                            <div
-                              className="progress-fill"
-                              style={{
-                                width: `${Math.max(0, 100 - ((selectedProperty.gridDistance ?? 0) * 20))}%`,
-                                backgroundColor:
-                                  selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5
-                                    ? 'var(--color-success)'
-                                    : 'var(--color-warning)'
-                              }}
-                            />
-                          </div>
-                          <p className="criteria-note">{selectedProperty.gridDistance} kilometers to nearest connection</p>
-                        </div>
-
-                        <div className="criteria-item">
-                          <div className="criteria-header">
-                            <span>Price/Acre</span>
-                            <span
-                              className={
-                                selectedProperty.acrePrice !== undefined && selectedProperty.acrePrice <= 1500
-                                  ? 'status status--success'
-                                  : 'status status--warning'
-                              }
-                            >
-                              {selectedProperty.acrePrice !== undefined && selectedProperty.acrePrice <= 1500 ? 'Excellent' : 'Not Great'}
-                            </span>
-                          </div>
-                          <div className="progress-bar">
-                            <div
-                              className="progress-fill"
-                              style={{
-                                width: `${Math.max(
-                                    0,
-                                    Math.min(100, ((3000 - (selectedProperty.acrePrice ?? 0)) / 2500) * 100)
-                                  )}%`,
-                                backgroundColor:
-                                  selectedProperty.acrePrice !== undefined && selectedProperty.acrePrice <= 1500
-                                    ? 'var(--color-success)'  // green if under 1500
-                                    : 'var(--color-warning)', // yellow if over 1500
-                              }}
-                            />
-                          </div>
-                          <p className="criteria-note">${selectedProperty.acrePrice}/Acre </p>
-                        </div>
-                      </div>
-
-                      <div className="action-buttons">
-                        {selectedProperty.forSale ? (
-                          <>
-                            <button className="btn btn--primary btn--full-width">Request Site Visit</button>
-                          </>
-                        ) : (
-                          <>
-                            <button className="btn btn--primary btn--full-width">Contact Owner</button>
-                            <button className="btn btn--outline btn--full-width">Request Valuation</button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* <div className="detail-card">
-                      <h4>Profit Analysis</h4>
-                    </div> */}
-                  </div>
-                ) : (
-                  <div className="empty-state">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    <h3>Select a Property</h3>
-                    <p>Click on any property card to view detailed solar suitability analysis</p>
-                  </div>
-                )}
-              </div>
+        <div className="criteria-list">
+          <div className="criteria-item">
+            <div className="criteria-header">
+              <span>Slope Analysis</span>
+              <span
+                className={
+                  selectedProperty.slope !== undefined && selectedProperty.slope >= 0 && selectedProperty.slope <= 5
+                    ? 'status status--success'
+                    : 'status status--warning'
+                }
+              >
+                {selectedProperty.slope !== undefined && selectedProperty.slope >= 0 && selectedProperty.slope <= 5
+                  ? 'Optimal'
+                  : 'Acceptable'}
+              </span>
             </div>
+            <div className="progress-bar">
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${Math.max(0, 100 - (selectedProperty.slope ?? 0) * 10)}%`,
+                  backgroundColor:
+                    selectedProperty.slope !== undefined && selectedProperty.slope >= 0 && selectedProperty.slope <= 5
+                      ? 'var(--color-success)'
+                      : 'var(--color-warning)'
+                }}
+              />
+            </div>
+            <p className="criteria-note">{selectedProperty.slope}° slope (ideal: &lt;5°)</p>
+          </div>
+
+          <div className="criteria-item">
+            <div className="criteria-header">
+              <span>Sunlight Exposure</span>
+              <span
+                className={
+                  selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 5
+                    ? 'status status--success'
+                    : 'status status--warning'
+                }
+              >
+                {selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 5 ? 'Excellent' : 'Good'}
+              </span>
+            </div>
+            <div className="progress-bar">
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${Math.max(0, Math.min(((selectedProperty.sunIrradiation ?? 0) - 4) / 2, 1) * 100)}%`,
+                  backgroundColor:
+                    selectedProperty.sunIrradiation !== undefined && selectedProperty.sunIrradiation >= 5
+                      ? 'var(--color-success)'
+                      : 'var(--color-warning)'
+                }}
+              />
+            </div>
+            <p className="criteria-note">{selectedProperty.sunIrradiation} W/m² daily average</p>
+          </div>
+
+          <div className="criteria-item">
+            <div className="criteria-header">
+              <span>Grid Proximity</span>
+              <span
+                className={
+                  selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5
+                    ? 'status status--success'
+                    : 'status status--warning'
+                }
+              >
+                {selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5 ? 'Optimal' : 'Good'}
+              </span>
+            </div>
+            <div className="progress-bar">
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${Math.max(0, 100 - ((selectedProperty.gridDistance ?? 0) * 20))}%`,
+                  backgroundColor:
+                    selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5
+                      ? 'var(--color-success)'
+                      : 'var(--color-warning)'
+                }}
+              />
+            </div>
+            <p className="criteria-note">{selectedProperty.gridDistance} kilometers to nearest connection</p>
+          </div>
+
+          <div className="criteria-item">
+            <div className="criteria-header">
+              <span>Price/Acre</span>
+              <span
+                className={
+                  selectedProperty.acrePrice !== undefined && selectedProperty.acrePrice <= 1500
+                    ? 'status status--success'
+                    : 'status status--warning'
+                }
+              >
+                {selectedProperty.acrePrice !== undefined && selectedProperty.acrePrice <= 1500 ? 'Excellent' : 'Not Great'}
+              </span>
+            </div>
+            <div className="progress-bar">
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${Math.max(
+                      0,
+                      Math.min(100, ((3000 - (selectedProperty.acrePrice ?? 0)) / 2500) * 100)
+                    )}%`,
+                  backgroundColor:
+                    selectedProperty.acrePrice !== undefined && selectedProperty.acrePrice <= 1500
+                      ? 'var(--color-success)'
+                      : 'var(--color-warning)',
+                }}
+              />
+            </div>
+            <p className="criteria-note">${selectedProperty.acrePrice}/Acre </p>
+          </div>
+        </div>
+
+        <div className="action-buttons">
+          {selectedProperty.forSale ? (
+            <>
+              <button className="btn btn--primary btn--full-width">Request Site Visit</button>
+            </>
+          ) : (
+            <>
+              <button className="btn btn--primary btn--full-width">Contact Owner</button>
+              <button className="btn btn--outline btn--full-width">Request Valuation</button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="detail-card">
+        <h4>Similar Properties</h4>
+        {loadingSimilar ? (
+          <p>Loading similar properties...</p>
+        ) : similarProperties.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {similarProperties.map(prop => (
+              <div
+                key={prop.id}
+                className="property-card"
+                style={{ cursor: 'pointer', margin: 0 }}
+                onClick={() => {
+                  setSelectedProperty(prop);
+                  if (propertyDetailsRef.current) {
+                  propertyDetailsRef.current.scrollTop = 0;
+                }
+
+                }}
+
+              >
+                <div className="property-header">
+                  <div>
+                    <h3 style={{ fontSize: '1rem' }}>{prop.name}</h3>
+                    <p className="location" style={{ fontSize: '0.875rem' }}>
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      {prop.location}
+                    </p>
+                  </div>
+                  <div
+                    className="score-badge"
+                    style={{
+                      backgroundColor: `${getSuitabilityColor(prop.suitabilityScore)}20`,
+                      borderColor: getSuitabilityColor(prop.suitabilityScore),
+                      color: getSuitabilityColor(prop.suitabilityScore),
+                    }}
+                  >
+                    <span className="score-value">{prop.suitabilityScore}</span>
+                  </div>
+                </div>
+                <div className="property-metrics" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                  <div className="metric">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    </svg>
+                    <span className="metric-label">Size</span>
+                    <span className="metric-value">{prop.acres} acres</span>
+                  </div>
+                  <div className="metric">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <circle cx="12" cy="12" r="5" />
+                    </svg>
+                    <span className="metric-label">Sun</span>
+                    <span className="metric-value">{prop.sunIrradiation} W/m²</span>
+                  </div>
+                </div>
+                <div className="property-footer">
+                  <div className="price">{prop.price}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p>No similar properties found.</p>
+        )}
+      </div>
+
+    </div>
+  ) : (
+    <div className="empty-state">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+        <circle cx="12" cy="10" r="3" />
+      </svg>
+      <h3>Select a Property</h3>
+      <p>Click on any property card to view detailed solar suitability analysis</p>
+    </div>
+  )}
+</div>
+</div>
           </>
         ) : (
           <div className="map-view">
