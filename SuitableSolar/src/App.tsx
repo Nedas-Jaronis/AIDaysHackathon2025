@@ -571,12 +571,12 @@ const getSuitabilityLabel = (score: number) => {
                             <span>Slope Analysis</span>
                             <span
                               className={
-                                selectedProperty.slope !== undefined && selectedProperty.slope !== null && selectedProperty.slope <= 5
+                                selectedProperty.slope !== undefined && selectedProperty.slope >= 0 && selectedProperty.slope <= 5
                                   ? 'status status--success'
                                   : 'status status--warning'
                               }
                             >
-                              {selectedProperty.slope !== undefined && selectedProperty.slope !== null && selectedProperty.slope <= 5
+                              {selectedProperty.slope !== undefined && selectedProperty.slope >= 0 && selectedProperty.slope <= 5
                                 ? 'Optimal'
                                 : 'Acceptable'}
                             </span>
@@ -587,9 +587,9 @@ const getSuitabilityLabel = (score: number) => {
                               style={{
                                 width: `${Math.max(0, 100 - (selectedProperty.slope ?? 0) * 10)}%`,
                                 backgroundColor:
-                                  selectedProperty.slope !== undefined && selectedProperty.slope !== null && selectedProperty.slope <= 5
-                                  ? 'status status--success'
-                                  : 'status status--warning'
+                                  selectedProperty.slope !== undefined && selectedProperty.slope >= 0 && selectedProperty.slope <= 5
+                                    ? 'var(--color-success)'
+                                    : 'var(--color-warning)'
                               }}
                             />
                           </div>
@@ -601,12 +601,12 @@ const getSuitabilityLabel = (score: number) => {
                             <span>Sunlight Exposure</span>
                             <span
                               className={
-                                selectedProperty.sunlightHours && selectedProperty.sunlightHours >= 8
+                                selectedProperty.sunlightHours !== undefined && selectedProperty.sunlightHours >= 8
                                   ? 'status status--success'
                                   : 'status status--warning'
                               }
                             >
-                              {selectedProperty.sunlightHours && selectedProperty.sunlightHours >= 8 ? 'Excellent' : 'Good'}
+                              {selectedProperty.sunlightHours !== undefined && selectedProperty.sunlightHours >= 8 ? 'Excellent' : 'Good'}
                             </span>
                           </div>
                           <div className="progress-bar">
@@ -614,7 +614,10 @@ const getSuitabilityLabel = (score: number) => {
                               className="progress-fill"
                               style={{
                                 width: `${((selectedProperty.sunlightHours ?? 0) / 12) * 100}%`,
-                                backgroundColor: 'var(--color-success)',
+                                backgroundColor:
+                                  selectedProperty.sunlightHours !== undefined && selectedProperty.sunlightHours >= 8
+                                    ? 'var(--color-success)'
+                                    : 'var(--color-warning)'
                               }}
                             />
                           </div>
@@ -626,12 +629,12 @@ const getSuitabilityLabel = (score: number) => {
                             <span>Grid Proximity</span>
                             <span
                               className={
-                                selectedProperty.gridDistance && selectedProperty.gridDistance <= 2
+                                selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 2
                                   ? 'status status--success'
                                   : 'status status--warning'
                               }
                             >
-                              {selectedProperty.gridDistance && selectedProperty.gridDistance <= 2 ? 'Close' : 'Moderate'}
+                              {selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 2 ? 'Optimal' : 'Good'}
                             </span>
                           </div>
                           <div className="progress-bar">
@@ -640,13 +643,13 @@ const getSuitabilityLabel = (score: number) => {
                               style={{
                                 width: `${Math.max(0, 100 - ((selectedProperty.gridDistance ?? 0) * 20))}%`,
                                 backgroundColor:
-                                  selectedProperty.gridDistance && selectedProperty.gridDistance <= 2
+                                  selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 2
                                     ? 'var(--color-success)'
-                                    : 'var(--color-warning)',
+                                    : 'var(--color-warning)'
                               }}
                             />
                           </div>
-                          <p className="criteria-note">{selectedProperty.gridDistance} miles to nearest connection</p>
+                          <p className="criteria-note">{selectedProperty.gridDistance} kilometers to nearest connection</p>
                         </div>
 
                         <div className="criteria-item">
@@ -654,12 +657,12 @@ const getSuitabilityLabel = (score: number) => {
                             <span>Land Size</span>
                             <span
                               className={
-                                selectedProperty.acres && selectedProperty.acres >= 50
+                                selectedProperty.acres !== undefined && selectedProperty.acres >= 50
                                   ? 'status status--success'
-                                  : 'status status--info'
+                                  : 'status status--warning'
                               }
                             >
-                              {selectedProperty.acres && selectedProperty.acres >= 50 ? 'Large-scale ready' : 'Community-scale'}
+                              {selectedProperty.acres !== undefined && selectedProperty.acres >= 50 ? 'Large-scale ready' : 'Community-scale'}
                             </span>
                           </div>
                           <div className="progress-bar">
@@ -667,7 +670,7 @@ const getSuitabilityLabel = (score: number) => {
                               className="progress-fill"
                               style={{
                                 width: `${Math.min(100, ((selectedProperty.acres ?? 0) / 200) * 100)}%`,
-                                backgroundColor: 'var(--color-primary)',
+                                backgroundColor: 'var(--color-primary)', // Primary color for land size
                               }}
                             />
                           </div>
