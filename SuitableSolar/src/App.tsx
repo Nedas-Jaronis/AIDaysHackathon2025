@@ -477,7 +477,7 @@ const getSuitabilityLabel = (score: number) => {
                             <line x1="12" y1="1" x2="12" y2="3" />
                           </svg>
                           <span className="metric-label">Sun</span>
-                          <span className="metric-value">{property.sunIrradiation}h</span>
+                          <span className="metric-value">{property.sunIrradiation} W/m²</span>
                         </div>
                         <div className="metric">
                           <svg
@@ -492,7 +492,7 @@ const getSuitabilityLabel = (score: number) => {
                             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                           </svg>
                           <span className="metric-label">Grid</span>
-                          <span className="metric-value">{property.gridDistance}km</span>
+                          <span className="metric-value">{property.gridDistance} km</span>
                         </div>
                       </div>
 
@@ -598,12 +598,12 @@ const getSuitabilityLabel = (score: number) => {
                         className="btn btn--outline btn--sm"
                         onClick={() => setShowMonthlySunlight(!showMonthlySunlight)}
                       >
-                        {showMonthlySunlight ? 'Hide' : 'Show'} Monthly Sunlight Hours
+                        {showMonthlySunlight ? 'Hide' : 'Show'} Monthly Sunlight Radiation
                       </button>
 
                       {showMonthlySunlight && (
                         <div className="monthly-sunlight-details">
-                          <h4>Average Monthly Sunlight (kWh/m²/day)</h4>
+                          <h4>Average Monthly Sunlight Radiation (kWh/m²/day)</h4>
                           <ul>
                             {selectedProperty && Object.entries({
                               Jan: selectedProperty.ghi_jan,
@@ -696,7 +696,7 @@ const getSuitabilityLabel = (score: number) => {
                               }}
                             />
                           </div>
-                          <p className="criteria-note">{selectedProperty.sunIrradiation} hours daily average</p>
+                          <p className="criteria-note">{selectedProperty.sunIrradiation} W/m² daily average</p>
                         </div>
 
                         <div className="criteria-item">
@@ -704,12 +704,12 @@ const getSuitabilityLabel = (score: number) => {
                             <span>Grid Proximity</span>
                             <span
                               className={
-                                selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 2
+                                selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5
                                   ? 'status status--success'
                                   : 'status status--warning'
                               }
                             >
-                              {selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 2 ? 'Optimal' : 'Good'}
+                              {selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5 ? 'Optimal' : 'Good'}
                             </span>
                           </div>
                           <div className="progress-bar">
@@ -718,7 +718,7 @@ const getSuitabilityLabel = (score: number) => {
                               style={{
                                 width: `${Math.max(0, 100 - ((selectedProperty.gridDistance ?? 0) * 20))}%`,
                                 backgroundColor:
-                                  selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 2
+                                  selectedProperty.gridDistance !== undefined && selectedProperty.gridDistance <= 5
                                     ? 'var(--color-success)'
                                     : 'var(--color-warning)'
                               }}
@@ -819,7 +819,7 @@ const getSuitabilityLabel = (score: number) => {
                         </div>
                         <div className="popup-details">
                           <span>{property.acres} acres</span>
-                          <span>{property.sunIrradiation}h sun</span>
+                          <span>{property.sunIrradiation}W/m² sun</span>
                         </div>
                         <div className="popup-price">{property.forSale ? property.price : property.estimatedValue}</div>
                         {!property.forSale && (
